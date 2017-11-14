@@ -1,5 +1,7 @@
 #include "tensorflow/compiler/xla/tools/tf_graph_to_xla_hlo_lib.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/grappler/costs/graph_properties.h"
+
 #include <fstream>      // std::ofstream
 
 namespace tensorflow {
@@ -37,19 +39,6 @@ Status PopulateXlaArgFromNode(const Node& n, XlaCompiler::Argument* arg, bool is
   }
   return Status::OK();
 }
-
-Status CopySendAttrsToRecv(const NodeDef& s, Node* r)
-{
-  DataType dtype;
-  std::vector<PartialTensorShape> out_shapes;
-  TF_RETURN_IF_ERROR(GetNodeAttr(s, "T", &dtype));
-  TF_RETURN_IF_ERROR(GetNodeAttr(s, "_output_shapes", &out_shapes));
-
-  r->AddAttr("dtype", dtype);
-  r->AddAttr("shape", out_shapes[0]);
-  return Status::OK();
-}
-
 
 bool is_target_node_op(StringPiece node_op)
 {
@@ -145,7 +134,6 @@ Status TfToXlaConverter::FindAndCompileLaunchNodes()
   compile_options_.client = xla::ClientLibrary::LocalClientOrDie();
   compile_options_.device_type = &device_type;
   compile_options_.allow_cpu_custom_calls = false;
-  // compile_options_.local_executable_has_hybrid_result = false;
   compile_options_.flib_def = flib_def_;
   compile_options_.graph_def_version = graph_def_.versions().producer();
 
@@ -196,7 +184,6 @@ Status TfToXlaConverter::CompileAndSaveLaunchNode(
       TF_RETURN_IF_ERROR(
         SaveTextOrBinaryXlaModule(output_file.str(), *xla_module));
 
-
       if (converter_options_.dump_arg_mapping) {
         output_file << ".map";
         std::ofstream map_fstream(output_file.str(), std::ofstream::out);
@@ -243,6 +230,7 @@ Status TfToXlaConverter::MatchSendRecvNodes(std::vector<Graph *>* partition_grap
     }
   }
   VLOG(1) << "Caching complete";
+  int p_idx=0;
   for (auto iter = recv_map.begin(); iter != recv_map.end(); ++iter) {
     const string& tensor_name = iter->first;
 
@@ -260,15 +248,47 @@ Status TfToXlaConverter::MatchSendRecvNodes(std::vector<Graph *>* partition_grap
     }
     if (send_map.find(tensor_name) != send_map.end()) {
       std::tie(src_node_id, src_graph) = send_map.at(tensor_name);
+
+      if (VLOG_IS_ON(1)) {
+        GraphDef bb;
+        src_graph->ToGraphDef(&bb);
+        std::ostringstream output_file;
+        output_file << "pgraph_blah_" << p_idx++ << ".pbtxt";
+        TF_RETURN_IF_ERROR(WriteTextProto(Env::Default(), output_file.str(), bb));
+      }
+
       Node* src_node = src_graph->FindNodeId(src_node_id);
+
       if (src_node == nullptr) {
         return errors::NotFound("Node id: ", src_node_id, " not found in graph");
       }
 
-      VLOG(1) << "Recv key: " << dst_node_id << " Send key: " << src_node_id;
+      TensorShape source_tensor_shape;
+      DataType source_data_type;
+
+      if (src_node->type_string() == "Const") {
+        Tensor t;
+        TF_RETURN_IF_ERROR(GetNodeAttr(src_node->def(), "value", &t));
+        source_tensor_shape = t.shape();
+        source_data_type = t.dtype();
+      } else {
+        tensorflow::grappler::GrapplerItem item;
+        src_graph->ToGraphDef(&item.graph);
+        tensorflow::grappler::GraphProperties properties(item);
+        TF_RETURN_IF_ERROR(properties.InferStatically());
+        const auto props = properties.GetOutputProperties(src_node->def().name());
+        const OpInfo::TensorProperties& prop = props[0];
+        source_data_type = prop.dtype();
+        source_tensor_shape = TensorShape(prop.shape());
+      }
+
+      VLOG(1) << "For Tensor: " << tensor_name << ", Recv key: " << dst_node_id << " Send key: " << src_node_id;
       VLOG(1) << " ## RECV " << SummarizeNodeDef(dst_node->def());
       VLOG(1) << " ## SEND " << SummarizeNodeDef(src_node->def());
-      TF_RETURN_IF_ERROR(CopySendAttrsToRecv(src_node->def(), dst_node));
+
+      dst_node->AddAttr("dtype", source_data_type);
+      dst_node->AddAttr("shape", source_tensor_shape);
+
       VLOG(1) << " ## After Copy " << SummarizeNodeDef(dst_node->def());
 
     } else {
