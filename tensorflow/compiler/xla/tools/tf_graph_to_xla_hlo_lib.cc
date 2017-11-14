@@ -40,6 +40,17 @@ Status PopulateXlaArgFromNode(const Node& n, XlaCompiler::Argument* arg, bool is
   return Status::OK();
 }
 
+Status prefix_internal_nodes(GraphDef *gd)
+{
+  for (int i = 0; i < gd->node_size(); ++i) {
+    NodeDef* node_def = gd->mutable_node(i);
+    if (node_def->op() == "_Retval") {
+      node_def->set_name("r" + node_def->name());
+    }
+  }
+  return Status::OK();
+}
+
 bool is_target_node_op(StringPiece node_op)
 {
   // This covers all of the resource assigns that come from the update ops
@@ -274,6 +285,8 @@ Status TfToXlaConverter::MatchSendRecvNodes(std::vector<Graph *>* partition_grap
       } else {
         tensorflow::grappler::GrapplerItem item;
         src_graph->ToGraphDef(&item.graph);
+        //Fix any nodes whose name starts with _ (invalid node for graph construction)
+        prefix_internal_nodes(&item.graph);
         tensorflow::grappler::GraphProperties properties(item);
         TF_RETURN_IF_ERROR(properties.InferStatically());
         const auto props = properties.GetOutputProperties(src_node->def().name());
