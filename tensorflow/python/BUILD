@@ -3200,6 +3200,7 @@ tf_py_wrap_cc(
         "util/tfprof.i",
         "util/transform_graph.i",
         "util/util.i",
+        "util/tf_graph_to_xla_hlo_lib.i",
     ],
     deps = [
         ":bfloat16_lib",
@@ -3235,6 +3236,7 @@ tf_py_wrap_cc(
         "//tensorflow/core/distributed_runtime:server_lib",
         "//tensorflow/core/profiler/internal:print_model_analysis",
         "//tensorflow/tools/graph_transforms:transform_graph_lib",
+        "//tensorflow/contrib/xla_extractor:tf_graph_to_xla_hlo_lib",
         "//tensorflow/python/eager:pywrap_tfe_lib",
         "//util/python:python_headers",
     ] + (tf_additional_lib_deps() +

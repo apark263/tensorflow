@@ -15,6 +15,17 @@ package_group(
 load("//tensorflow/compiler/xla:xla.bzl", "xla_proto_library")
 load("//tensorflow:tensorflow.bzl", "tf_cc_test")
 load("//tensorflow:tensorflow.bzl", "tf_cc_binary")
+load(
+    "//tensorflow/core:platform/default/build_config.bzl",
+    "tf_proto_library_py",
+)
+
+tf_proto_library_py(
+    name = "session_proto",  # bzl adds a _py suffix
+    srcs = ["session.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["//tensorflow/compiler/xla:xla_data_proto_py"],
+)
 
 xla_proto_library(
     name = "session_proto",

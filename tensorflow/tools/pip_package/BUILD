@@ -179,6 +179,7 @@ sh_binary(
             "//tensorflow/contrib/tensor_forest/hybrid:hybrid_pip",
             "//tensorflow/contrib/timeseries:timeseries_pip",
             "//tensorflow/contrib/tpu",
+            "//tensorflow/contrib/xla_extractor",
             "//tensorflow/examples/tutorials/mnist:package",
             "//tensorflow/python:distributed_framework_test_lib",
             "//tensorflow/python:meta_graph_testdata",

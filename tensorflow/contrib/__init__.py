@@ -82,6 +82,7 @@ from tensorflow.contrib import timeseries
 from tensorflow.contrib import tpu
 from tensorflow.contrib import training
 from tensorflow.contrib import util
+from tensorflow.contrib import xla_extractor
 from tensorflow.contrib.eager.python import tfe as eager
 from tensorflow.contrib.lite.python import lite
 from tensorflow.contrib.receptive_field import receptive_field_api as receptive_field
