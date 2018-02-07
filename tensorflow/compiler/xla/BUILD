@@ -7,6 +7,7 @@ package_group(
     packages = [
         "//tensorflow/compiler/...",
         "//tensorflow/contrib/tpu/...",
+        "//tensorflow/contrib/xla_extractor/...",
     ],
 )
 
@@ -44,6 +45,16 @@ tf_proto_library_py(
     name = "xla_data_proto",  # bzl adds a _py suffix
     srcs = ["xla_data.proto"],
     visibility = ["//visibility:public"],
+)
+
+tf_proto_library_py(
+    name = "xla_proto",  # bzl adds a _py suffix
+    srcs = ["xla.proto"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":xla_data_proto_py",
+        "//tensorflow/compiler/xla/service:session_proto_py",
+    ],
 )
 
 xla_proto_library(
