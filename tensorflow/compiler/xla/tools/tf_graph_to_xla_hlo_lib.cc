@@ -26,9 +26,7 @@ DirectSession* CreateSession() {
 
 Status PopulateXlaArgFromNode(const Node& n, XlaCompiler::Argument* arg, bool is_resource=false) {
   TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "dtype", &(arg->type)));
-  TensorShape s;
-  TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "shape", &s));
-  TF_RETURN_IF_ERROR(TensorShapeToXLAShape(arg->type, s, &(arg->shape)));
+  TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "shape", &(arg->shape)));
   arg->name = n.name();
   if (is_resource) {
     arg->kind = XlaCompiler::Argument::kResource;
