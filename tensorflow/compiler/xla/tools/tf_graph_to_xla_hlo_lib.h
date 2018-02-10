@@ -8,6 +8,7 @@
 #include "tensorflow/compiler/tf2xla/shape_util.h"  // for TensorShapeToXLAShape
 
 namespace tensorflow {
+Status Describe(const xla::SessionModule& m);
 
 // Using this just for its friend status with DirectSession
 class DebugGateway {

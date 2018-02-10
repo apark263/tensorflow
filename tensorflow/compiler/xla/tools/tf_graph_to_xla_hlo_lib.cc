@@ -6,6 +6,17 @@
 
 namespace tensorflow {
 
+import_session_module(const char* graph_def_string, int graph_def_len,
+                      const char* target_node_string, int target_node_len) {
+  GraphDef g;
+  std::string graph_msg(graph_def_string, (size_t) graph_def_len);
+  g.ParseFromString(graph_msg);
+
+  auto 
+
+}
+
+
 DirectSession* CreateSession() {
   SessionOptions session_options;
   session_options.config.
@@ -135,6 +146,117 @@ Status TfToXlaConverter::LoadAndPartitionGraphs()
 
   return Status::OK();
 }
+
+Status FindAndCompileLaunchNodes(const GraphDef& g, const std::string& target_node)
+{
+  std::unique_ptr<DirectSession> dsession (CreateSession());
+  DebugGateway dbg(dsession.get());
+
+  Status s = dbg.Create(g);
+  if (!s.ok()) return s;
+
+  /* Classify requested node as target or output*/
+  std::vector<string> outputs, targets;
+
+  string item;
+  std::stringstream target_stream(target_node);
+  while (std::getline(target_stream, item, ' ')) {
+    if (!item.empty()) {
+      s = classify_node(g, item, outputs, targets);
+      if (!s.ok()) return s;
+    }
+  }
+  for (auto& t : targets) VLOG(1) << "targets: " << t;
+  for (auto& o : outputs) VLOG(1) << "outputs: " << o;
+
+  std::vector<Graph *> graphs_list;
+  FunctionLibraryDefinition* flib_def;
+
+  s = dbg.CreatePartitionGraphs(outputs, targets, &graphs_list, &flib_def);
+  if (!s.ok()) return s;
+
+  VLOG(1) << "Partition Graphs complete";
+  s = MatchSendRecvNodes(&graphs_list);
+  if (!s.ok()) return s;
+
+  DeviceType device_type(DEVICE_CPU_XLA_JIT);
+  XlaCompiler::Options compile_options;
+  // Fill in the parts of the compile options that won't change on each node
+  compile_options.client = xla::ClientLibrary::LocalClientOrDie();
+  compile_options.device_type = &device_type;
+  compile_options.allow_cpu_custom_calls = false;
+  compile_options.flib_def = flib_def;
+  compile_options.graph_def_version = g.versions().producer();
+  XlaCompiler compiler(compile_options);
+
+  unsigned int partition_index = 0;
+  for (Graph* partition_graph : graphs_list) {
+    for (const Node* node : partition_graph->op_nodes()) {
+      if (node->type_string() == "_XlaLaunch") {
+
+        VLOG(1) << "LaunchNode\n" << SummarizeNode(*node);
+
+        TF_RETURN_IF_ERROR(
+          CompileAndSaveLaunchNode(*node, partition_index++));
+      }
+    }
+  }
+  return Status::OK();
+}
+Status CompileLaunchNode(XlaCompiler& compiler, const Node& launch_node, const int& index,
+                         std::string *serialized_module)
+{
+  const NameAttrList* function;
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(launch_node.def(), "function", &function));
+
+  std::vector<XlaCompiler::Argument> args;
+  TF_RETURN_IF_ERROR(
+    BuildArgumentsFromNode(launch_node, &args));
+
+  std::shared_ptr<GuardedCompilation> gcmpl = std::make_shared<GuardedCompilation>();
+  mutex_lock gcmpl_lock(gcmpl->mu);
+  gcmpl->status = compiler.CompileFunction(
+      XlaCompiler::CompileOptions(), *function, args, &gcmpl->result);
+
+  if (gcmpl->status.ok()) {
+    auto s_o_module = gcmpl->result.computation->Snapshot();
+    if (s_o_module.ok()) {
+      std::unique_ptr<xla::SessionModule> xla_module = std::move(s_o_module).ValueOrDie();
+
+      xla_module->SerializeToString(serialized_module);
+
+
+      std::ostringstream output_file;
+      output_file << converter_options_.out_prefix << "_" << partition_index << ".pb";
+      if (converter_options_.output_as_text) {
+        output_file << "txt";
+      }
+      TF_RETURN_IF_ERROR(
+        SaveTextOrBinaryXlaModule(output_file.str(), *xla_module));
+
+      if (converter_options_.dump_arg_mapping) {
+        output_file << ".map";
+        std::ofstream map_fstream(output_file.str(), std::ofstream::out);
+        for (unsigned int i = 0; i < args.size(); ++i) {
+          map_fstream << i << " " << args[i].name << std::endl;
+        }
+        map_fstream.close();
+      }
+
+    } else {
+      VLOG(1) << "Failed in snapshot";
+      return errors::Internal("Snapshot failure");
+    }
+    return gcmpl->status;
+  }
+  else {
+    LOG(INFO) << "Failed in compilation: " << gcmpl->status.error_message();
+    return errors::Internal("Compilation failure");
+  }
+  return Status::OK();
+}
+
 
 Status TfToXlaConverter::FindAndCompileLaunchNodes()
 {
