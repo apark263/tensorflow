@@ -16,7 +16,6 @@ limitations under the License.
 // Usage: graph_execution saved_graph.pbtxt
 #include "tensorflow/compiler/xla/tools/tf_graph_to_xla_hlo_lib.h"
 
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string>
@@ -26,31 +25,39 @@ limitations under the License.
 
 namespace tensorflow {
 
-
-void RealMain(TfToXlaConverter::TfToXlaConverterOptions converter_options)
+void RealMain(TfToXlaConverterOptions converter_options)
 {
-  TfToXlaConverter txc(converter_options);
-
-  Status s = txc.LoadAndPartitionGraphs();
+  GraphDef g;
+  Status s = LoadTextOrBinaryGraphFile(converter_options.in_graph, &g);
   if (!s.ok())
-    LOG(FATAL) << "Loading and partitioning of graphs failed: " << s.error_message();
+    LOG(FATAL) << "Loading graph failed: " << s.error_message();
 
-  Status compile_status = txc.FindAndCompileLaunchNodes();
+  std::vector<std::unique_ptr<xla::SessionModule>> xla_modules;
+  Status compile_status = FindAndCompileLaunchNodes(g, converter_options.target_node, &xla_modules);
   if (!compile_status.ok())
     LOG(FATAL) << "Compilation to XLA failed: " << compile_status.error_message();
-}
 
+  for (unsigned int idx = 0; idx < xla_modules.size(); ++idx) {
+      std::ostringstream out_filename;
+      out_filename << converter_options.out_prefix << "_" << idx << ".pb";
+      if (converter_options.output_as_text)
+        out_filename << "txt";
+
+      Status save_status = SaveTextOrBinaryXlaModule(out_filename.str(), *xla_modules[idx]);
+      if (!save_status.ok())
+        LOG(FATAL) << "Save failed: " << save_status.error_message();
+  }
+}
 }  // namespace tensorflow
 
 int main(int argc, char** argv) {
 
-  tensorflow::TfToXlaConverter::TfToXlaConverterOptions converter_options = 
+  tensorflow::TfToXlaConverterOptions converter_options = 
     { .in_graph = "",
       .out_prefix = "xla_graph",
       .target_node = "",
       .verbose = false,
       .output_as_text = false,
-      .dump_arg_mapping = true,
     };
 
   std::vector<tensorflow::Flag> flag_list = {
@@ -61,9 +68,7 @@ int main(int argc, char** argv) {
          "space separated list of target nodes for capture"},
       {"verbose", &converter_options.verbose, "whether to print extra output"},
       {"output_as_text", &converter_options.output_as_text,
-          "whether to write the graph in text protobuf format"},
-      {"dump_arg_mapping", &converter_options.dump_arg_mapping,
-          "whether to write a plain text file with the mapping of positional arguments to graph variable names"}
+          "whether to write the graph in text protobuf format"}
   };
 
   const xla::string usage = tensorflow::Flags::Usage(argv[0], flag_list);

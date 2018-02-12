@@ -9,7 +9,10 @@
 
 namespace tensorflow {
 Status Describe(const xla::SessionModule& m);
-
+std::vector<std::string> xla_extract_via_strings(
+    const std::string& graph_def_msg,
+    const std::string& target_node
+);
 // Using this just for its friend status with DirectSession
 class DebugGateway {
 public:
@@ -31,57 +34,16 @@ private:
   DirectSession* session_;
 };
 
+Status SaveTextOrBinaryXlaModule(const string& file_name, const xla::SessionModule& m);
+Status LoadTextOrBinaryGraphFile(const string& file_name, GraphDef* graph_def);
+Status FindAndCompileLaunchNodes(const GraphDef& g, const std::string& target_node, std::vector<std::unique_ptr<xla::SessionModule>>* xla_modules);
 
-class TfToXlaConverter {
-public:
-
-  struct TfToXlaConverterOptions {
-    std::string in_graph;
-    std::string out_prefix;
-    std::string target_node;
-    bool verbose;
-    bool output_as_text;
-    bool dump_arg_mapping;
-  };
-
-  TfToXlaConverter(TfToXlaConverterOptions options);
-
-  Status LoadAndPartitionGraphs();
-  // Partitioned graphs to be converted to XLA compiled nodes can sometimes contain
-  // recv nodes if the partitioning crosses device boundaries. The recv nodes lack 
-  // attributes necessary to create XLA arguments.  This function matches up the 
-  // corresponding send nodes from the source graph partition so that the attributes
-  // are attached to the recv nodes
-  Status FindAndCompileLaunchNodes();
-
-  Status CompileAndSaveLaunchNode(
-    const Node& launch_node,
-    const unsigned int&  partition_index
-  );
-
-  static Status MatchSendRecvNodes(std::vector<Graph *>* partition_graphs);
-  static Status BuildArgumentsFromNode(const Node& launch_node, std::vector<XlaCompiler::Argument>* args);
-  static Status SaveTextOrBinaryXlaModule(const string& file_name, const xla::SessionModule& m);
-  static Status LoadTextOrBinaryGraphFile(const string& file_name, GraphDef* graph_def);
-
-private:
-  TfToXlaConverterOptions converter_options_;
-  XlaCompiler::Options compile_options_;
-  GraphDef graph_def_;
-  std::vector<Graph *> graphs_list_;
-  FunctionLibraryDefinition* flib_def_;
-  std::unique_ptr<DirectSession> dsession_;
-  DebugGateway dbg_;
-
-
-  // The taken from 
-  struct GuardedCompilation {
-    mutex mu;
-    Status status GUARDED_BY(mu);
-    // Output of the XlaCompiler.
-    XlaCompiler::CompilationResult result GUARDED_BY(mu);
-  };
+struct TfToXlaConverterOptions {
+  std::string in_graph;
+  std::string out_prefix;
+  std::string target_node;
+  bool verbose;
+  bool output_as_text;
 };
-
 
 } // namespace tensorflow

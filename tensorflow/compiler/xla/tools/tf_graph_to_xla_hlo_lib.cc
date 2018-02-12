@@ -1,19 +1,46 @@
 #include "tensorflow/compiler/xla/tools/tf_graph_to_xla_hlo_lib.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/grappler/costs/graph_properties.h"
-
 #include <fstream>      // std::ofstream
 
 namespace tensorflow {
 
-import_session_module(const char* graph_def_string, int graph_def_len,
-                      const char* target_node_string, int target_node_len) {
+Status Describe(const xla::SessionModule& m) {
+  // auto op_map = m.entry()->requests();
+  // for (auto &x : op_map) {
+  //   if (x.second.request().has_parameter_request()) {
+  //     std::cout << x.first << " " << x.second.request().parameter_request().name() << std::endl;
+  //   }
+  // }
+  return Status::OK();
+}
+
+// StatusOr<std::vector<std::string>> xla_extract_via_strings(
+std::vector<std::string> xla_extract_via_strings(
+    const std::string& graph_def_msg,
+    const std::string& target_node
+)
+{
   GraphDef g;
-  std::string graph_msg(graph_def_string, (size_t) graph_def_len);
-  g.ParseFromString(graph_msg);
+  g.ParseFromString(graph_def_msg);
 
-  auto 
+  std::vector<std::string> results {"ab", "cd", "ef"};
 
+  return results;
+  // std::vector<std::unique_ptr<xla::SessionModule>> xla_modules;
+  // Status compile_status = FindAndCompileLaunchNodes(g, target_node, &xla_modules);
+  // if (!compile_status.ok()) {
+  //   LOG(WARNING) << "Compilation to XLA failed: " << compile_status.error_message();
+  //   return compile_status;
+  // }
+
+  // std::vector<std::string> serialized_xla;
+  // for (auto& x: xla_modules) {
+  //   std::string serialized_module;
+  //   x->SerializeToString(&serialized_module);
+  //   serialized_xla.push_back(serialized_xla);
+  // }
+  // return serialized_xla;
 }
 
 
@@ -35,7 +62,31 @@ DirectSession* CreateSession() {
   return dynamic_cast<DirectSession*>(NewSession(session_options));
 }
 
-Status PopulateXlaArgFromNode(const Node& n, XlaCompiler::Argument* arg, bool is_resource=false) {
+Status DebugGateway::CreatePartitionGraphs(
+    const std::vector<string>& outputs,
+    const std::vector<string>& targets,
+    std::vector<Graph *>* partition_graphs,
+    FunctionLibraryDefinition** flib_def) {
+  DebugOptions dbg_opts;
+  DirectSession::RunStateArgs rs(dbg_opts);
+  DirectSession::ExecutorsAndKeys* executors_and_keys;
+
+  TF_RETURN_IF_ERROR(
+      session_->GetOrCreateExecutors({}, outputs, targets, &executors_and_keys, &rs));
+
+  for (auto& i : executors_and_keys->items) {
+    partition_graphs->push_back(i.graph);
+  }
+  *flib_def = session_->functions_.back()->flib_def.get();
+  return Status::OK();
+}
+
+Status PopulateXlaArgFromNode(
+    const Node& n,
+    XlaCompiler::Argument* arg,
+    bool is_resource
+)
+{
   TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "dtype", &(arg->type)));
   TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "shape", &(arg->shape)));
   arg->name = n.name();
@@ -71,13 +122,33 @@ bool is_target_node_op(StringPiece node_op)
   return false;
 }
 
-Status classify_node(const GraphDef& g, const string &node_name,
-                     std::vector<string>& outputs, std::vector<string>& targets)
+void tag_parameters(
+    const std::vector<XlaCompiler::Argument>& args,
+    xla::SessionModule* sm
+)
+{
+  auto op_map = sm->mutable_entry()->mutable_requests();
+  for (auto &x : *op_map) {
+    if (x.second.request().has_parameter_request()) {
+      ::xla::ParameterRequest* preq = x.second.mutable_request()->mutable_parameter_request();
+      preq->set_name(args[preq->parameter()].name);
+      VLOG(1) << x.first << " " << preq->parameter() << " " << preq->name();
+    }
+  }
+}
+
+Status ClassifyNode(
+    const GraphDef& g,
+    const string &node_name,
+    std::vector<string>& outputs,
+    std::vector<string>& targets
+)
 {
   const protobuf::RepeatedPtrField<NodeDef>& all_nodes = g.node();
   for (const NodeDef& node_def : all_nodes) {
     if (node_def.name() == node_name) {
-      VLOG(2) << "Found matching node for " << node_name << ": " << SummarizeNodeDef(node_def);
+      VLOG(2) << "Found matching node for "
+              << node_name << ": " << SummarizeNodeDef(node_def);
 
       if (is_target_node_op(node_def.op())) {
         targets.push_back(node_name);
@@ -90,121 +161,71 @@ Status classify_node(const GraphDef& g, const string &node_name,
   return errors::NotFound("Unable to find node in graph: ", node_name);
 }
 
-Status DebugGateway::CreatePartitionGraphs(
-    const std::vector<string>& outputs,
-    const std::vector<string>& targets,
-    std::vector<Graph *>* partition_graphs,
-    FunctionLibraryDefinition** flib_def) {
-  DebugOptions dbg_opts;
-  DirectSession::RunStateArgs rs(dbg_opts);
-  DirectSession::ExecutorsAndKeys* executors_and_keys;
-
-  TF_RETURN_IF_ERROR(
-      session_->GetOrCreateExecutors({}, outputs, targets, &executors_and_keys, &rs));
-
-  for (auto& i : executors_and_keys->items) {
-    partition_graphs->push_back(i.graph);
-  }
-  *flib_def = session_->functions_.back()->flib_def.get();
-  return Status::OK();
-}
-
-TfToXlaConverter::TfToXlaConverter(TfToXlaConverterOptions options) 
-  : converter_options_(options)
-  , dsession_(CreateSession())
-  , dbg_(dsession_.get())
-{}
-
-Status TfToXlaConverter::LoadAndPartitionGraphs()
+Status BuildArgumentsFromNode(
+    const Node& launch_node,
+    std::vector<XlaCompiler::Argument>* args
+)
 {
+  DataTypeVector constant_dtypes, arg_dtypes, result_dtypes;
+
+  int num_resources = 0;
   TF_RETURN_IF_ERROR(
-    LoadTextOrBinaryGraphFile(converter_options_.in_graph, &graph_def_));
+      GetNodeAttr(launch_node.def(), "Nresources", &num_resources));
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(launch_node.def(), "Tconstants", &constant_dtypes));
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(launch_node.def(), "Targs", &arg_dtypes));
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(launch_node.def(), "Tresults", &result_dtypes));
 
-  TF_RETURN_IF_ERROR(dbg_.Create(graph_def_));
+  VLOG(1) << "FUNCSIG: "
+          << constant_dtypes.size() << " "
+          << num_resources << " " 
+          << arg_dtypes.size() - constant_dtypes.size() - num_resources;
 
-  /* Classify requested node as target or output*/
-  std::vector<string> outputs;
-  std::vector<string> targets;
+  if (constant_dtypes.size() != 0) {
+    LOG(FATAL) << "Have constant args that we do not handle yet";
+  }
 
-  string item;
-  std::stringstream target_stream(converter_options_.target_node);
-  while (std::getline(target_stream, item, ' ')) {
-    if (!item.empty()) {
-      TF_RETURN_IF_ERROR(
-        classify_node(graph_def_, item, outputs, targets));
+  std::unordered_map<std::string, int> arg_map;
+  for (int idx=0; idx < launch_node.def().input_size(); ++idx) {
+    arg_map.emplace(launch_node.def().input(idx), idx);
+  }
+
+  std::vector<const Node*> input_nodes;
+  input_nodes.resize(launch_node.def().input_size());
+  for (auto n: launch_node.in_nodes()) {
+    if (arg_map.find(n->name()) != arg_map.end()) {
+      int correct_position = arg_map.at(n->name());
+      input_nodes[correct_position] = n;
+    } else {
+      LOG(INFO) << "Unable to find arg_name: " << n->name();
     }
   }
-  for (auto& t : targets) VLOG(1) << "targets: " << t;
-  for (auto& o : outputs) VLOG(1) << "outputs: " << o;
 
-  TF_RETURN_IF_ERROR(
-    dbg_.CreatePartitionGraphs(outputs, targets, &graphs_list_, &flib_def_));
-
-  VLOG(1) << "Partition Graphs complete";
-  TF_RETURN_IF_ERROR(
-    MatchSendRecvNodes(&graphs_list_));
-
-  return Status::OK();
-}
-
-Status FindAndCompileLaunchNodes(const GraphDef& g, const std::string& target_node)
-{
-  std::unique_ptr<DirectSession> dsession (CreateSession());
-  DebugGateway dbg(dsession.get());
-
-  Status s = dbg.Create(g);
-  if (!s.ok()) return s;
-
-  /* Classify requested node as target or output*/
-  std::vector<string> outputs, targets;
-
-  string item;
-  std::stringstream target_stream(target_node);
-  while (std::getline(target_stream, item, ' ')) {
-    if (!item.empty()) {
-      s = classify_node(g, item, outputs, targets);
-      if (!s.ok()) return s;
+  if (VLOG_IS_ON(1)) {
+    for (auto n: input_nodes) {
+      VLOG(2) << "LAUNCHARG: " <<  n->name() << " " << n->id();
     }
   }
-  for (auto& t : targets) VLOG(1) << "targets: " << t;
-  for (auto& o : outputs) VLOG(1) << "outputs: " << o;
-
-  std::vector<Graph *> graphs_list;
-  FunctionLibraryDefinition* flib_def;
-
-  s = dbg.CreatePartitionGraphs(outputs, targets, &graphs_list, &flib_def);
-  if (!s.ok()) return s;
-
-  VLOG(1) << "Partition Graphs complete";
-  s = MatchSendRecvNodes(&graphs_list);
-  if (!s.ok()) return s;
-
-  DeviceType device_type(DEVICE_CPU_XLA_JIT);
-  XlaCompiler::Options compile_options;
-  // Fill in the parts of the compile options that won't change on each node
-  compile_options.client = xla::ClientLibrary::LocalClientOrDie();
-  compile_options.device_type = &device_type;
-  compile_options.allow_cpu_custom_calls = false;
-  compile_options.flib_def = flib_def;
-  compile_options.graph_def_version = g.versions().producer();
-  XlaCompiler compiler(compile_options);
-
-  unsigned int partition_index = 0;
-  for (Graph* partition_graph : graphs_list) {
-    for (const Node* node : partition_graph->op_nodes()) {
-      if (node->type_string() == "_XlaLaunch") {
-
-        VLOG(1) << "LaunchNode\n" << SummarizeNode(*node);
-
-        TF_RETURN_IF_ERROR(
-          CompileAndSaveLaunchNode(*node, partition_index++));
-      }
-    }
+  // Now build the arguments 
+  int input_num = 0;
+  args->resize(input_nodes.size());
+  for (auto n: input_nodes) {
+    bool is_resource = (n->op_def().name() == "VarHandleOp");
+    XlaCompiler::Argument* arg = &(*args)[input_num];
+    TF_RETURN_IF_ERROR(
+      PopulateXlaArgFromNode(*n, arg, is_resource));
+    ++input_num;
   }
   return Status::OK();
 }
-Status CompileLaunchNode(XlaCompiler& compiler, const Node& launch_node, const int& index,
-                         std::string *serialized_module)
+
+Status CompileLaunchNode(
+    XlaCompiler& compiler,
+    const Node& launch_node,
+    std::vector<std::unique_ptr<xla::SessionModule>>* xla_modules
+)
 {
   const NameAttrList* function;
   TF_RETURN_IF_ERROR(
@@ -214,131 +235,29 @@ Status CompileLaunchNode(XlaCompiler& compiler, const Node& launch_node, const i
   TF_RETURN_IF_ERROR(
     BuildArgumentsFromNode(launch_node, &args));
 
-  std::shared_ptr<GuardedCompilation> gcmpl = std::make_shared<GuardedCompilation>();
-  mutex_lock gcmpl_lock(gcmpl->mu);
-  gcmpl->status = compiler.CompileFunction(
-      XlaCompiler::CompileOptions(), *function, args, &gcmpl->result);
+  XlaCompiler::CompilationResult result;
+  Status s = compiler.CompileFunction(
+      XlaCompiler::CompileOptions(), *function, args, &result);
 
-  if (gcmpl->status.ok()) {
-    auto s_o_module = gcmpl->result.computation->Snapshot();
+  if (s.ok()) {
+    auto s_o_module = result.computation->Snapshot();
     if (s_o_module.ok()) {
-      std::unique_ptr<xla::SessionModule> xla_module = std::move(s_o_module).ValueOrDie();
-
-      xla_module->SerializeToString(serialized_module);
-
-
-      std::ostringstream output_file;
-      output_file << converter_options_.out_prefix << "_" << partition_index << ".pb";
-      if (converter_options_.output_as_text) {
-        output_file << "txt";
-      }
-      TF_RETURN_IF_ERROR(
-        SaveTextOrBinaryXlaModule(output_file.str(), *xla_module));
-
-      if (converter_options_.dump_arg_mapping) {
-        output_file << ".map";
-        std::ofstream map_fstream(output_file.str(), std::ofstream::out);
-        for (unsigned int i = 0; i < args.size(); ++i) {
-          map_fstream << i << " " << args[i].name << std::endl;
-        }
-        map_fstream.close();
-      }
-
+      xla_modules->push_back(std::move(s_o_module).ValueOrDie());
+      tag_parameters(args, xla_modules->back().get());
+      return Status::OK();
     } else {
       VLOG(1) << "Failed in snapshot";
       return errors::Internal("Snapshot failure");
     }
-    return gcmpl->status;
-  }
-  else {
-    LOG(INFO) << "Failed in compilation: " << gcmpl->status.error_message();
+  } else {
+    LOG(INFO) << "Failed in compilation: " << s.error_message();
     return errors::Internal("Compilation failure");
   }
-  return Status::OK();
 }
 
-
-Status TfToXlaConverter::FindAndCompileLaunchNodes()
-{
-  DeviceType device_type(DEVICE_CPU_XLA_JIT);
-  // Fill in the parts of the compile options that won't change on each node
-  compile_options_.client = xla::ClientLibrary::LocalClientOrDie();
-  compile_options_.device_type = &device_type;
-  compile_options_.allow_cpu_custom_calls = false;
-  compile_options_.flib_def = flib_def_;
-  compile_options_.graph_def_version = graph_def_.versions().producer();
-
-  unsigned int partition_index = 0;
-  for (Graph* partition_graph : graphs_list_) {
-    for (const Node* node : partition_graph->op_nodes()) {
-      if (node->type_string() == "_XlaLaunch") {
-
-        VLOG(1) << "LaunchNode\n" << SummarizeNode(*node);
-
-        TF_RETURN_IF_ERROR(
-          CompileAndSaveLaunchNode(*node, partition_index++));
-      }
-    }
-  }
-  return Status::OK();
-}
-
-Status TfToXlaConverter::CompileAndSaveLaunchNode(
-  const Node& launch_node,
-  const unsigned int&  partition_index)
-{
-  XlaCompiler compiler(compile_options_);
-
-  const NameAttrList* function;
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(launch_node.def(), "function", &function));
-
-  std::vector<XlaCompiler::Argument> args;
-  TF_RETURN_IF_ERROR(
-    BuildArgumentsFromNode(launch_node, &args));
-
-  std::shared_ptr<GuardedCompilation> gcmpl = std::make_shared<GuardedCompilation>();
-  mutex_lock gcmpl_lock(gcmpl->mu);
-  gcmpl->status = compiler.CompileFunction(
-      XlaCompiler::CompileOptions(), *function, args, &gcmpl->result);
-
-  if (gcmpl->status.ok()) {
-    auto s_o_module = gcmpl->result.computation->Snapshot();
-    if (s_o_module.ok()) {
-      std::unique_ptr<xla::SessionModule> xla_module = std::move(s_o_module).ValueOrDie();
-
-      std::ostringstream output_file;
-      output_file << converter_options_.out_prefix << "_" << partition_index << ".pb";
-      if (converter_options_.output_as_text) {
-        output_file << "txt";
-      }
-      TF_RETURN_IF_ERROR(
-        SaveTextOrBinaryXlaModule(output_file.str(), *xla_module));
-
-      if (converter_options_.dump_arg_mapping) {
-        output_file << ".map";
-        std::ofstream map_fstream(output_file.str(), std::ofstream::out);
-        for (unsigned int i = 0; i < args.size(); ++i) {
-          map_fstream << i << " " << args[i].name << std::endl;
-        }
-        map_fstream.close();
-      }
-
-    } else {
-      VLOG(1) << "Failed in snapshot";
-      return errors::Internal("Snapshot failure");
-    }
-    return gcmpl->status;
-  }
-  else {
-    LOG(INFO) << "Failed in compilation: " << gcmpl->status.error_message();
-    return errors::Internal("Compilation failure");
-  }
-  return Status::OK();
-}
-
-/* static */
-Status TfToXlaConverter::MatchSendRecvNodes(std::vector<Graph *>* partition_graphs)
+Status MatchSendRecvNodes(
+    std::vector<Graph *>* partition_graphs
+)
 {
   std::unordered_map<string, std::pair<int, Graph*>> recv_map;
   std::unordered_map<string, std::pair<int, Graph*>> send_map;
@@ -432,10 +351,10 @@ Status TfToXlaConverter::MatchSendRecvNodes(std::vector<Graph *>* partition_grap
   return Status::OK();
 }
 
-/* static */
-Status TfToXlaConverter::SaveTextOrBinaryXlaModule(
-  const string& file_name,
-  const xla::SessionModule& m)
+Status SaveTextOrBinaryXlaModule(
+    const string& file_name,
+    const xla::SessionModule& m
+)
 {
   StringPiece fname(file_name);
   if (fname.ends_with(".pbtxt")) {
@@ -443,14 +362,13 @@ Status TfToXlaConverter::SaveTextOrBinaryXlaModule(
   } else {
     TF_RETURN_IF_ERROR(WriteBinaryProto(Env::Default(), file_name, m));
   }
-
   return Status::OK();
 }
 
-/* static */
-Status TfToXlaConverter::LoadTextOrBinaryGraphFile(
-  const string& file_name,
-  GraphDef* graph_def)
+Status LoadTextOrBinaryGraphFile(
+    const string& file_name,
+    GraphDef* graph_def
+)
 {
   string file_data;
   Status load_file_status =
@@ -473,59 +391,63 @@ Status TfToXlaConverter::LoadTextOrBinaryGraphFile(
   return load_status;
 }
 
-/* static */
-Status TfToXlaConverter::BuildArgumentsFromNode(const Node& launch_node, std::vector<XlaCompiler::Argument>* args) {
-  DataTypeVector constant_dtypes, arg_dtypes, result_dtypes;
+Status FindAndCompileLaunchNodes(
+    const GraphDef& g,
+    const std::string& target_node,
+    std::vector<std::unique_ptr<xla::SessionModule>>* xla_modules
+)
+{
+  std::unique_ptr<DirectSession> dsession (CreateSession());
+  DebugGateway dbg(dsession.get());
 
-  int num_resources = 0;
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(launch_node.def(), "Nresources", &num_resources));
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(launch_node.def(), "Tconstants", &constant_dtypes));
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(launch_node.def(), "Targs", &arg_dtypes));
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(launch_node.def(), "Tresults", &result_dtypes));
+  Status s = dbg.Create(g);
+  if (!s.ok()) return s;
 
-  VLOG(1) << "FUNCSIG: "
-          << constant_dtypes.size() << " "
-          << num_resources << " " 
-          << arg_dtypes.size() - constant_dtypes.size() - num_resources;
+  /* Classify requested node as target or output*/
+  std::vector<string> outputs, targets;
 
-  if (constant_dtypes.size() != 0) {
-    LOG(FATAL) << "Have constant args that we do not handled yet";
-  }
-
-  std::unordered_map<std::string, int> arg_map;
-  for (int idx=0; idx < launch_node.def().input_size(); ++idx) {
-    arg_map.emplace(launch_node.def().input(idx), idx);
-  }
-
-  std::vector<const Node*> input_nodes;
-  input_nodes.resize(launch_node.def().input_size());
-  for (auto n: launch_node.in_nodes()) {
-    if (arg_map.find(n->name()) != arg_map.end()) {
-      int correct_position = arg_map.at(n->name());
-      input_nodes[correct_position] = n;
-    } else {
-      LOG(INFO) << "Unable to find arg_name: " << n->name();
+  string item;
+  std::stringstream target_stream(target_node);
+  while (std::getline(target_stream, item, ' ')) {
+    if (!item.empty()) {
+      s = ClassifyNode(g, item, outputs, targets);
+      if (!s.ok()) return s;
     }
   }
+  VLOG(1) << "Node classification complete";
+  for (auto& t : targets) VLOG(1) << "targets: " << t;
+  for (auto& o : outputs) VLOG(1) << "outputs: " << o;
 
-  if (VLOG_IS_ON(1)) {
-    for (auto n: input_nodes) {
-      VLOG(2) << "LAUNCHARG: " <<  n->name() << " " << n->id();
+  std::vector<Graph *> graphs_list;
+  FunctionLibraryDefinition* flib_def;
+
+  s = dbg.CreatePartitionGraphs(outputs, targets, &graphs_list, &flib_def);
+  if (!s.ok()) return s;
+  VLOG(1) << "Partition Graphs complete";
+
+  s = MatchSendRecvNodes(&graphs_list);
+  if (!s.ok()) return s;
+  VLOG(1) << "Matching Send and Recv complete";
+
+  DeviceType device_type(DEVICE_CPU_XLA_JIT);
+  XlaCompiler::Options compile_options;
+  compile_options.client = xla::ClientLibrary::LocalClientOrDie();
+  compile_options.device_type = &device_type;
+  compile_options.allow_cpu_custom_calls = false;
+  compile_options.flib_def = flib_def;
+  compile_options.graph_def_version = g.versions().producer();
+  XlaCompiler compiler(compile_options);
+
+  for (Graph* partition_graph : graphs_list) {
+    for (const Node* node : partition_graph->op_nodes()) {
+      if (node->type_string() == "_XlaLaunch") {
+
+        VLOG(2) << "LaunchNode\n" << SummarizeNode(*node);
+
+        s = CompileLaunchNode(compiler, *node, xla_modules);
+        if (!s.ok()) return s;
+      }
     }
-  }
-  // Now build the arguments 
-  int input_num = 0;
-  args->resize(input_nodes.size());
-  for (auto n: input_nodes) {
-    bool is_resource = (n->op_def().name() == "VarHandleOp");
-    XlaCompiler::Argument* arg = &(*args)[input_num];
-    TF_RETURN_IF_ERROR(
-      PopulateXlaArgFromNode(*n, arg, is_resource));
-    ++input_num;
   }
   return Status::OK();
 }
