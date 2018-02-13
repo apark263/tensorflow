@@ -7,12 +7,18 @@
 #include "tensorflow/compiler/tf2xla/xla_op_registry.h"  // for DEVICE_CPU_XLA_JIT
 #include "tensorflow/compiler/tf2xla/shape_util.h"  // for TensorShapeToXLAShape
 
-namespace tensorflow {
-Status Describe(const xla::SessionModule& m);
-std::vector<std::string> xla_extract_via_strings(
-    const std::string& graph_def_msg,
-    const std::string& target_node
+namespace xla {
+namespace swig {
+
+StatusOr<string> xla_extract_via_strings(
+    const string& graph_def_msg,
+    const string& target_node
 );
+
+} // namespace swig
+} // namespace xla
+
+namespace tensorflow {
 // Using this just for its friend status with DirectSession
 class DebugGateway {
 public:

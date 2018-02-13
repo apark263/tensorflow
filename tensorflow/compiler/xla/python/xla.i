@@ -16,3 +16,4 @@ limitations under the License.
 /* XLA-wide SWIG wrapper */
 
 %include "tensorflow/compiler/xla/python/local_computation_builder.i"
+%include "tensorflow/compiler/xla/python/tf_graph_to_xla_hlo_lib.i"

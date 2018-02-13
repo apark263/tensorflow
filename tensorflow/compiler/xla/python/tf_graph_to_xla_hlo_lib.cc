@@ -1,48 +1,47 @@
-#include "tensorflow/compiler/xla/tools/tf_graph_to_xla_hlo_lib.h"
+#include "tensorflow/compiler/xla/python/tf_graph_to_xla_hlo_lib.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/grappler/costs/graph_properties.h"
 #include <fstream>      // std::ofstream
 
-namespace tensorflow {
+namespace xla {
+namespace swig {
 
-Status Describe(const xla::SessionModule& m) {
-  // auto op_map = m.entry()->requests();
-  // for (auto &x : op_map) {
-  //   if (x.second.request().has_parameter_request()) {
-  //     std::cout << x.first << " " << x.second.request().parameter_request().name() << std::endl;
-  //   }
-  // }
-  return Status::OK();
-}
-
-// StatusOr<std::vector<std::string>> xla_extract_via_strings(
-std::vector<std::string> xla_extract_via_strings(
-    const std::string& graph_def_msg,
-    const std::string& target_node
+StatusOr<string> xla_extract_via_strings(
+    const string& graph_def_msg,
+    const string& target_node
 )
 {
-  GraphDef g;
+  tensorflow::GraphDef g;
   g.ParseFromString(graph_def_msg);
 
-  std::vector<std::string> results {"ab", "cd", "ef"};
+  string serialized_xla;
+  std::vector<std::unique_ptr<xla::SessionModule>> xla_modules;
+  Status compile_status = FindAndCompileLaunchNodes(g, target_node, &xla_modules);
 
-  return results;
-  // std::vector<std::unique_ptr<xla::SessionModule>> xla_modules;
-  // Status compile_status = FindAndCompileLaunchNodes(g, target_node, &xla_modules);
-  // if (!compile_status.ok()) {
-  //   LOG(WARNING) << "Compilation to XLA failed: " << compile_status.error_message();
-  //   return compile_status;
-  // }
+  if (!compile_status.ok()) {
+    LOG(WARNING) << "Compilation to XLA failed: " << compile_status.error_message();
+    return compile_status;
+  }
 
-  // std::vector<std::string> serialized_xla;
-  // for (auto& x: xla_modules) {
-  //   std::string serialized_module;
-  //   x->SerializeToString(&serialized_module);
-  //   serialized_xla.push_back(serialized_xla);
-  // }
-  // return serialized_xla;
+  if (xla_modules.size() == 0) {
+    LOG(WARNING) << "No compiled xla modules generated";
+    return tensorflow::errors::Internal("Too few xla modules generated");
+  }
+
+  if (xla_modules.size() > 1) {
+    LOG(WARNING) << "Unexpected number of xla modules found: " << xla_modules.size();
+    return tensorflow::errors::Internal("Too many xla modules generated");
+  }
+
+  xla_modules[0]->SerializeToString(&serialized_xla);
+
+  return serialized_xla;
 }
 
+}
+}
+
+namespace tensorflow {
 
 DirectSession* CreateSession() {
   SessionOptions session_options;
