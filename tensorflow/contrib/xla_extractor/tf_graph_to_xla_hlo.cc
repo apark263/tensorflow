@@ -45,6 +45,12 @@ void RealMain(TfToXlaConverterOptions converter_options) {
         SaveTextOrBinaryXlaModule(out_filename.str(), *xla_modules[idx]);
     if (!save_status.ok())
       LOG(FATAL) << "Save failed: " << save_status.error_message();
+
+    // Now dump out the arg map as a separate file (per mateo)
+    out_filename << ".map";
+    save_status =
+      DumpParameterMap(out_filename.str(), *xla_modules[idx]);
+
   }
 }
 }  // namespace tensorflow

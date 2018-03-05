@@ -100,6 +100,26 @@ void tag_parameters(const std::vector<XlaCompiler::Argument>& args,
   }
 }
 
+Status DumpParameterMap(const string& output_file, const xla::SessionModule& sm) {
+  std::unordered_map<int, string> arg_map;
+
+  for (auto& x : sm.entry().requests()) {
+    if (x.second.request().has_parameter_request()) {
+      ::xla::ParameterRequest preq = x.second.request().parameter_request();
+      arg_map.emplace(preq.parameter(), preq.name());
+    }
+  }
+
+  std::ofstream map_fstream(output_file, std::ofstream::out);
+
+  for (int i = 0; i < arg_map.size(); ++i) {
+    map_fstream << i << " " << arg_map.at(i) << std::endl;
+  }
+  map_fstream.close();
+
+  return Status::OK();
+}
+
 Status ClassifyNode(const GraphDef& g, const string& node_name,
                     std::vector<string>& outputs,
                     std::vector<string>& targets) {
