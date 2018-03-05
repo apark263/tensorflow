@@ -50,6 +50,8 @@ class XlaExtractor {
 Status xla_extract_via_strings(const string& graph_def_msg,
                                const string& target_node,
                                std::vector<string>* xla_mod_strings);
+Status DumpParameterMap(const string& file_name,
+                        const xla::SessionModule& m);
 
 Status SaveTextOrBinaryXlaModule(const string& file_name,
                                  const xla::SessionModule& m);
