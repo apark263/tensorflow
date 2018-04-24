@@ -1,6 +1,7 @@
 #include "tensorflow/contrib/xla_extractor/tf_graph_to_xla_hlo_lib.h"
-#include <fstream>  // std::ofstream
+#include "tensorflow/compiler/tf2xla/dump_graph.h"
 #include "tensorflow/core/grappler/costs/graph_properties.h"
+#include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/core/errors.h"
 
 namespace tensorflow {
@@ -55,8 +56,14 @@ DirectSession* CreateSession() {
 Status PopulateXlaArgFromNode(const Node& n, XlaCompiler::Argument* arg,
                               bool is_resource) {
   TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "dtype", &(arg->type)));
-  TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "shape", &(arg->shape)));
+  TensorShape s;
+  //  TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "shape", &(arg->shape)));
+  TF_RETURN_IF_ERROR(GetNodeAttr(n.def(), "shape", &s));
+  TF_RETURN_IF_ERROR(TensorShapeToXLAShape(arg->type, s, &(arg->shape)));
   arg->name = n.name();
+  VLOG(2) << "Populate XLA ARG: " << n.name() << " "
+          << SummarizeNodeDef(n.def());
+
   if (is_resource) {
     arg->kind = XlaCompiler::Argument::kResource;
     arg->resource_kind = XlaResource::kVariable;
@@ -79,6 +86,8 @@ Status prefix_internal_nodes(GraphDef* gd) {
 
 bool is_target_node_op(StringPiece node_op) {
   // This covers all of the resource assigns that come from the update ops
+  // if (str_util::StartsWith(node_op, "Resource")) return true;
+  // if (str_util::StartsWith(node_op, "Dummy")) return true;
   if (node_op.starts_with("Resource")) return true;
   if (node_op.starts_with("Dummy")) return true;
   if (node_op == "NoOp") return true;
@@ -98,26 +107,6 @@ void tag_parameters(const std::vector<XlaCompiler::Argument>& args,
       VLOG(1) << x.first << " " << preq->parameter() << " " << preq->name();
     }
   }
-}
-
-Status DumpParameterMap(const string& output_file, const xla::SessionModule& sm) {
-  std::unordered_map<int, string> arg_map;
-
-  for (auto& x : sm.entry().requests()) {
-    if (x.second.request().has_parameter_request()) {
-      ::xla::ParameterRequest preq = x.second.request().parameter_request();
-      arg_map.emplace(preq.parameter(), preq.name());
-    }
-  }
-
-  std::ofstream map_fstream(output_file, std::ofstream::out);
-
-  for (int i = 0; i < arg_map.size(); ++i) {
-    map_fstream << i << " " << arg_map.at(i) << std::endl;
-  }
-  map_fstream.close();
-
-  return Status::OK();
 }
 
 Status ClassifyNode(const GraphDef& g, const string& node_name,
@@ -223,63 +212,59 @@ Status CompileLaunchNode(
 }
 
 Status MatchSendRecvNodes(std::vector<Graph*>* partition_graphs) {
-  std::unordered_map<string, std::pair<int, Graph*>> recv_map;
-  std::unordered_map<string, std::pair<int, Graph*>> send_map;
+  struct MatchStruct {
+    int output_idx = 0;
+    Graph* graph = nullptr;
+    Node* node = nullptr;
+  };
+
+  std::unordered_map<string, MatchStruct> s_map;
+  std::unordered_map<string, Node*> r_map;
 
   // First traverse the partition graphs and store the send and recv node ids by
   // tensorname
   for (Graph* pg_ptr : (*partition_graphs)) {
+    if (VLOG_IS_ON(1)) {
+      GraphDef bb;
+      pg_ptr->ToGraphDef(&bb);
+      tensorflow::dump_graph::DumpGraphDefToFile("pgraph_blah", bb);
+    }
     for (const Node* node : pg_ptr->op_nodes()) {
-      if (node->def().op() == "_Send") {
-        string tensornm;
-        TF_RETURN_IF_ERROR(GetNodeAttr(node->def(), "tensor_name", &tensornm));
-        Node* source_node;
-        TF_RETURN_IF_ERROR(node->input_node(0, &source_node));
-        send_map.emplace(tensornm, std::make_pair(source_node->id(), pg_ptr));
-      }
-      if (node->def().op() == "_Recv") {
-        string tensornm;
-        TF_RETURN_IF_ERROR(GetNodeAttr(node->def(), "tensor_name", &tensornm));
-        recv_map.emplace(tensornm, std::make_pair(node->id(), pg_ptr));
+      if (node->def().op() == "_Send" || node->def().op() == "_Recv") {
+        string tensor_name;
+        TF_RETURN_IF_ERROR(
+            GetNodeAttr(node->def(), "tensor_name", &tensor_name));
+        if (node->def().op() == "_Send") {
+          struct MatchStruct m;
+          m.graph = pg_ptr;
+          TF_RETURN_IF_ERROR(node->input_node(0, &m.node));
+          for (const Edge* e : node->in_edges()) {
+            m.output_idx = e->src_output();
+          }
+          s_map.emplace(tensor_name, m);
+        } else {
+          r_map.emplace(tensor_name, pg_ptr->FindNodeId(node->id()));
+        }
       }
     }
   }
   VLOG(1) << "Caching complete";
-  int p_idx = 0;
-  for (auto iter = recv_map.begin(); iter != recv_map.end(); ++iter) {
+  for (auto iter = r_map.begin(); iter != r_map.end(); ++iter) {
     const string& tensor_name = iter->first;
 
-    Graph *dst_graph, *src_graph;
-    int dst_node_id, src_node_id;
+    Node* dst_node = iter->second;
+    // std::tie(dst_node_id, dst_graph) = iter->second;
+    // Node* dst_node = r_mstruct.node; //dst_graph->FindNodeId(dst_node_id);
 
-    std::tie(dst_node_id, dst_graph) = iter->second;
-    Node* dst_node = dst_graph->FindNodeId(dst_node_id);
-    if (dst_node == nullptr) {
-      return errors::NotFound("Node id: ", dst_node_id, " not found in graph");
-    }
     if (dst_node->assigned_device_name().find("XLA_CPU") == std::string::npos) {
       VLOG(1) << "Skipping recv node assigned device: "
-              << SummarizeNodeDef(dst_node->def());
+              << SummarizeNode(*dst_node);
       continue;
     }
-    if (send_map.find(tensor_name) != send_map.end()) {
-      std::tie(src_node_id, src_graph) = send_map.at(tensor_name);
-
-      if (VLOG_IS_ON(1)) {
-        GraphDef bb;
-        src_graph->ToGraphDef(&bb);
-        std::ostringstream output_file;
-        output_file << "pgraph_blah_" << p_idx++ << ".pbtxt";
-        TF_RETURN_IF_ERROR(
-            WriteTextProto(Env::Default(), output_file.str(), bb));
-      }
-
-      Node* src_node = src_graph->FindNodeId(src_node_id);
-
-      if (src_node == nullptr) {
-        return errors::NotFound("Node id: ", src_node_id,
-                                " not found in graph");
-      }
+    if (s_map.find(tensor_name) != s_map.end()) {
+      auto s_mstruct = s_map.at(tensor_name);
+      Node* src_node = s_mstruct.node;
+      Graph* src_graph = s_mstruct.graph;
 
       TensorShape source_tensor_shape;
       DataType source_data_type;
@@ -299,20 +284,20 @@ Status MatchSendRecvNodes(std::vector<Graph*>* partition_graphs) {
         TF_RETURN_IF_ERROR(properties.InferStatically(false));
         const auto props =
             properties.GetOutputProperties(src_node->def().name());
-        const OpInfo::TensorProperties& prop = props[0];
+        const OpInfo::TensorProperties& prop = props[s_mstruct.output_idx];
         source_data_type = prop.dtype();
         source_tensor_shape = TensorShape(prop.shape());
       }
 
-      VLOG(1) << "For Tensor: " << tensor_name << ", Recv key: " << dst_node_id
-              << " Send key: " << src_node_id;
-      VLOG(1) << " ## RECV " << SummarizeNodeDef(dst_node->def());
-      VLOG(1) << " ## SEND " << SummarizeNodeDef(src_node->def());
+      VLOG(1) << "\n\n"
+              << "For Tensor: " << tensor_name << "\n"
+              << " ## RECV " << SummarizeNode(*dst_node) << "\n"
+              << " ## SEND " << SummarizeNode(*src_node);
 
       dst_node->AddAttr("dtype", source_data_type);
       dst_node->AddAttr("shape", source_tensor_shape);
 
-      VLOG(1) << " ## After Copy " << SummarizeNodeDef(dst_node->def());
+      VLOG(1) << "\n\n## After Copy:\n " << SummarizeNode(*dst_node);
 
     } else {
       return errors::NotFound("No send node found for tensor '", tensor_name,
@@ -320,17 +305,6 @@ Status MatchSendRecvNodes(std::vector<Graph*>* partition_graphs) {
     }
   }
   VLOG(1) << "Matching complete";
-  return Status::OK();
-}
-
-Status SaveTextOrBinaryXlaModule(const string& file_name,
-                                 const xla::SessionModule& m) {
-  StringPiece fname(file_name);
-  if (fname.ends_with(".pbtxt")) {
-    TF_RETURN_IF_ERROR(WriteTextProto(Env::Default(), file_name, m));
-  } else {
-    TF_RETURN_IF_ERROR(WriteBinaryProto(Env::Default(), file_name, m));
-  }
   return Status::OK();
 }
 

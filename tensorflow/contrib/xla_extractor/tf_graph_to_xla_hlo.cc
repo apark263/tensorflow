@@ -18,7 +18,7 @@ limitations under the License.
 #include <string>
 
 #include "tensorflow/contrib/xla_extractor/tf_graph_to_xla_hlo_lib.h"
-
+#include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/logging.h"
 
@@ -36,21 +36,20 @@ void RealMain(TfToXlaConverterOptions converter_options) {
     LOG(FATAL) << "Compilation to XLA failed: "
                << compile_status.error_message();
 
-  for (unsigned int idx = 0; idx < xla_modules.size(); ++idx) {
-    std::ostringstream out_filename;
-    out_filename << converter_options.out_prefix << "_" << idx << ".pb";
-    if (converter_options.output_as_text) out_filename << "txt";
+  auto write_module = [&] (int i, const xla::SessionModule& m) -> Status {
+    const char* prefix = converter_options.out_prefix.c_str();
+    const char* suffix = converter_options.output_as_text ? "txt" : "";
+    auto filename = strings::Printf("%s_%d.pb%s", prefix, i, suffix);
+    if (converter_options.output_as_text)
+      return WriteTextProto(Env::Default(), filename, m);
+    else
+      return WriteBinaryProto(Env::Default(), filename, m);
+  };
 
-    Status save_status =
-        SaveTextOrBinaryXlaModule(out_filename.str(), *xla_modules[idx]);
+  for (unsigned int idx = 0; idx < xla_modules.size(); ++idx) {
+    Status save_status = write_module(idx, *xla_modules[idx]);
     if (!save_status.ok())
       LOG(FATAL) << "Save failed: " << save_status.error_message();
-
-    // Now dump out the arg map as a separate file (per mateo)
-    out_filename << ".map";
-    save_status =
-      DumpParameterMap(out_filename.str(), *xla_modules[idx]);
-
   }
 }
 }  // namespace tensorflow
