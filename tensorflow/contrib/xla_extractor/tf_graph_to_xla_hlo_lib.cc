@@ -90,9 +90,9 @@ bool is_target_node_op(StringPiece node_op) {
   // if (str_util::StartsWith(node_op, "Dummy")) return true;
   if (node_op.starts_with("Resource")) return true;
   if (node_op.starts_with("Dummy")) return true;
+  if (node_op.starts_with("Assign")) return true;
   if (node_op == "NoOp") return true;
   if (node_op == "ControlTrigger") return true;
-  if (node_op == "Assign") return true;
   return false;
 }
 
