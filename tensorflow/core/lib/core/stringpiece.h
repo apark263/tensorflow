@@ -101,6 +101,15 @@ class StringPiece {
   //   >  0 iff "*this" >  "b"
   int compare(StringPiece b) const;
 
+  // Return true iff "x" is a prefix of "*this"
+  bool starts_with(StringPiece x) const {
+    return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0));
+  }
+  // Return true iff "x" is a suffix of "*this"
+  bool ends_with(StringPiece x) const {
+    return ((size_ >= x.size_) &&
+            (memcmp(data_ + (size_ - x.size_), x.data_, x.size_) == 0));
+  }
   // Converts to `std::basic_string`.
   template <typename A>
   explicit operator std::basic_string<char, std::char_traits<char>, A>() const {
