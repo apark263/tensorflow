@@ -92,6 +92,7 @@ from tensorflow.contrib import timeseries
 from tensorflow.contrib import tpu
 from tensorflow.contrib import training
 from tensorflow.contrib import util
+from tensorflow.contrib import xla_extractor
 from tensorflow.contrib.eager.python import tfe as eager
 if os.name != "nt":
   from tensorflow.contrib.lite.python import lite
