@@ -1,0 +1,2371 @@
+hlo {
+  hlo_module {
+    name: "cluster_0[_XlaCompiledKernel=true,_XlaNumConstantArgs=0,_XlaNumResourceArgs=4]2"
+    entry_computation_name: "cluster_0[_XlaCompiledKernel=true,_XlaNumConstantArgs=0,_XlaNumResourceArgs=4]2"
+    computations {
+      name: "max<float>0"
+      instructions {
+        name: "fc/Placeholder"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+      }
+      instructions {
+        name: "fc/Placeholder_1"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+        parameter_number: 1
+        id: 1
+      }
+      instructions {
+        name: "maximum.0.2"
+        opcode: "maximum"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+        id: 2
+        operand_ids: 0
+        operand_ids: 1
+      }
+      program_shape {
+        parameters {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        parameters {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        result {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        parameter_names: "x"
+        parameter_names: "y"
+      }
+      root_id: 2
+    }
+    computations {
+      name: "add<float>1"
+      instructions {
+        name: "fc/Placeholder"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+      }
+      instructions {
+        name: "fc/Placeholder_1"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+        parameter_number: 1
+        id: 1
+      }
+      instructions {
+        name: "add.1.2"
+        opcode: "add"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+        id: 2
+        operand_ids: 0
+        operand_ids: 1
+      }
+      program_shape {
+        parameters {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        parameters {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        result {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        parameter_names: "x"
+        parameter_names: "y"
+      }
+      id: 1
+      root_id: 2
+    }
+    computations {
+      name: "cluster_0[_XlaCompiledKernel=true,_XlaNumConstantArgs=0,_XlaNumResourceArgs=4]2"
+      instructions {
+        name: "fc/Placeholder"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 784
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Args"
+        }
+      }
+      instructions {
+        name: "fc/Placeholder_1"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Args"
+        }
+        parameter_number: 1
+        id: 1
+      }
+      instructions {
+        name: "fc/hidden/hidden_1/weights"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Args"
+        }
+        parameter_number: 2
+        id: 2
+      }
+      instructions {
+        name: "fc/hidden/hidden_1/biases"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Args"
+        }
+        parameter_number: 3
+        id: 3
+      }
+      instructions {
+        name: "fc/fully_connected/weights"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Args"
+        }
+        parameter_number: 4
+        id: 4
+      }
+      instructions {
+        name: "fc/fully_connected/biases"
+        opcode: "parameter"
+        shape {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Args"
+        }
+        parameter_number: 5
+        id: 5
+      }
+      instructions {
+        name: "reshape.2.6"
+        opcode: "reshape"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 784
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+        id: 6
+        operand_ids: 0
+      }
+      instructions {
+        name: "reshape.2.7"
+        opcode: "reshape"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+        }
+        id: 7
+        operand_ids: 1
+      }
+      instructions {
+        name: "constant.2.8"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Const"
+          op_name: "fc/final_node/learning_rate"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0.01
+        }
+        id: 8
+      }
+      instructions {
+        name: "constant.2.9"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 1
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Const"
+          op_name: "fc/gradients/fc/softmax_cross_entropy_with_logits_sg_grad/ExpandDims/_0__cf__0"
+        }
+        literal {
+          shape {
+            element_type: F32
+            dimensions: 64
+            dimensions: 1
+            layout {
+              minor_to_major: 1
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+          f32s: 0.015625
+        }
+        id: 9
+      }
+      instructions {
+        name: "constant.2.10"
+        opcode: "constant"
+        shape {
+          element_type: S32
+          dimensions: 2
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Const"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg/concat_1/_1__cf__1"
+        }
+        literal {
+          shape {
+            element_type: S32
+            dimensions: 2
+            layout {
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          s32s: -1
+          s32s: 10
+        }
+        id: 10
+      }
+      instructions {
+        name: "dot.2.11"
+        opcode: "dot"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/hidden/hidden_1/MatMul"
+        }
+        dot_dimension_numbers {
+          lhs_contracting_dimensions: 1
+          rhs_contracting_dimensions: 0
+        }
+        id: 11
+        operand_ids: 6
+        operand_ids: 2
+      }
+      instructions {
+        name: "broadcast.2.12"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAdd"
+          op_name: "fc/hidden/hidden_1/BiasAdd"
+        }
+        dimensions: 1
+        id: 12
+        operand_ids: 3
+      }
+      instructions {
+        name: "add.2.13"
+        opcode: "add"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAdd"
+          op_name: "fc/hidden/hidden_1/BiasAdd"
+        }
+        id: 13
+        operand_ids: 11
+        operand_ids: 12
+      }
+      instructions {
+        name: "constant.2.14"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Relu"
+          op_name: "fc/hidden/hidden_1/Relu"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 14
+      }
+      instructions {
+        name: "broadcast.2.15"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Relu"
+          op_name: "fc/hidden/hidden_1/Relu"
+        }
+        id: 15
+        operand_ids: 14
+      }
+      instructions {
+        name: "maximum.2.16"
+        opcode: "maximum"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Relu"
+          op_name: "fc/hidden/hidden_1/Relu"
+        }
+        id: 16
+        operand_ids: 15
+        operand_ids: 13
+      }
+      instructions {
+        name: "dot.2.17"
+        opcode: "dot"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/fully_connected/MatMul"
+        }
+        dot_dimension_numbers {
+          lhs_contracting_dimensions: 1
+          rhs_contracting_dimensions: 0
+        }
+        id: 17
+        operand_ids: 16
+        operand_ids: 4
+      }
+      instructions {
+        name: "broadcast.2.18"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAdd"
+          op_name: "fc/fully_connected/BiasAdd"
+        }
+        dimensions: 1
+        id: 18
+        operand_ids: 5
+      }
+      instructions {
+        name: "add.2.19"
+        opcode: "add"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAdd"
+          op_name: "fc/fully_connected/BiasAdd"
+        }
+        id: 19
+        operand_ids: 17
+        operand_ids: 18
+      }
+      instructions {
+        name: "constant.2.20"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Relu"
+          op_name: "fc/fully_connected/Relu"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 20
+      }
+      instructions {
+        name: "broadcast.2.21"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Relu"
+          op_name: "fc/fully_connected/Relu"
+        }
+        id: 21
+        operand_ids: 20
+      }
+      instructions {
+        name: "maximum.2.22"
+        opcode: "maximum"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Relu"
+          op_name: "fc/fully_connected/Relu"
+        }
+        id: 22
+        operand_ids: 21
+        operand_ids: 19
+      }
+      instructions {
+        name: "reshape.2.23"
+        opcode: "reshape"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Reshape"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg/Reshape"
+        }
+        id: 23
+        operand_ids: 22
+      }
+      instructions {
+        name: "reshape.2.24"
+        opcode: "reshape"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Reshape"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg/Reshape_1"
+        }
+        id: 24
+        operand_ids: 7
+      }
+      instructions {
+        name: "constant.2.25"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: -inf
+        }
+        id: 25
+      }
+      instructions {
+        name: "reduce.2.26"
+        opcode: "reduce"
+        shape {
+          element_type: F32
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        dimensions: 1
+        id: 26
+        operand_ids: 23
+        operand_ids: 25
+        called_computation_ids: 0
+      }
+      instructions {
+        name: "broadcast.2.27"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        dimensions: 0
+        id: 27
+        operand_ids: 26
+      }
+      instructions {
+        name: "subtract.2.28"
+        opcode: "subtract"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 28
+        operand_ids: 23
+        operand_ids: 27
+      }
+      instructions {
+        name: "exponential.2.29"
+        opcode: "exponential"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 29
+        operand_ids: 28
+      }
+      instructions {
+        name: "convert.2.30"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 30
+        operand_ids: 29
+      }
+      instructions {
+        name: "constant.2.31"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 31
+      }
+      instructions {
+        name: "reduce.2.32"
+        opcode: "reduce"
+        shape {
+          element_type: F32
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        dimensions: 1
+        id: 32
+        operand_ids: 30
+        operand_ids: 31
+        called_computation_ids: 1
+      }
+      instructions {
+        name: "convert.2.33"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 33
+        operand_ids: 32
+      }
+      instructions {
+        name: "log.2.34"
+        opcode: "log"
+        shape {
+          element_type: F32
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 34
+        operand_ids: 33
+      }
+      instructions {
+        name: "broadcast.2.35"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        dimensions: 0
+        id: 35
+        operand_ids: 34
+      }
+      instructions {
+        name: "subtract.2.36"
+        opcode: "subtract"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 36
+        operand_ids: 28
+        operand_ids: 35
+      }
+      instructions {
+        name: "negate.2.37"
+        opcode: "negate"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 37
+        operand_ids: 24
+      }
+      instructions {
+        name: "multiply.2.38"
+        opcode: "multiply"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 38
+        operand_ids: 37
+        operand_ids: 36
+      }
+      instructions {
+        name: "constant.2.39"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 39
+      }
+      instructions {
+        name: "convert.2.40"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 40
+        operand_ids: 38
+      }
+      instructions {
+        name: "reduce.2.41"
+        opcode: "reduce"
+        shape {
+          element_type: F32
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        dimensions: 1
+        id: 41
+        operand_ids: 40
+        operand_ids: 39
+        called_computation_ids: 1
+      }
+      instructions {
+        name: "convert.2.42"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 42
+        operand_ids: 41
+      }
+      instructions {
+        name: "broadcast.2.43"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        dimensions: 0
+        id: 43
+        operand_ids: 33
+      }
+      instructions {
+        name: "divide.2.44"
+        opcode: "divide"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 44
+        operand_ids: 29
+        operand_ids: 43
+      }
+      instructions {
+        name: "subtract.2.45"
+        opcode: "subtract"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "SoftmaxCrossEntropyWithLogits"
+          op_name: "fc/softmax_cross_entropy_with_logits_sg"
+        }
+        id: 45
+        operand_ids: 44
+        operand_ids: 24
+      }
+      instructions {
+        name: "reshape.2.46"
+        opcode: "reshape"
+        shape {
+          element_type: F32
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Mul"
+          op_name: "fc/gradients/fc/softmax_cross_entropy_with_logits_sg_grad/mul"
+        }
+        id: 46
+        operand_ids: 9
+      }
+      instructions {
+        name: "broadcast.2.47"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Mul"
+          op_name: "fc/gradients/fc/softmax_cross_entropy_with_logits_sg_grad/mul"
+        }
+        dimensions: 0
+        id: 47
+        operand_ids: 46
+      }
+      instructions {
+        name: "multiply.2.48"
+        opcode: "multiply"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "Mul"
+          op_name: "fc/gradients/fc/softmax_cross_entropy_with_logits_sg_grad/mul"
+        }
+        id: 48
+        operand_ids: 47
+        operand_ids: 45
+      }
+      instructions {
+        name: "constant.2.49"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/fully_connected/Relu_grad/ReluGrad"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 49
+      }
+      instructions {
+        name: "broadcast.2.50"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/fully_connected/Relu_grad/ReluGrad"
+        }
+        id: 50
+        operand_ids: 49
+      }
+      instructions {
+        name: "greater-than.2.51"
+        opcode: "greater-than"
+        shape {
+          element_type: PRED
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/fully_connected/Relu_grad/ReluGrad"
+        }
+        id: 51
+        operand_ids: 22
+        operand_ids: 50
+      }
+      instructions {
+        name: "select.2.52"
+        opcode: "select"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/fully_connected/Relu_grad/ReluGrad"
+        }
+        id: 52
+        operand_ids: 51
+        operand_ids: 48
+        operand_ids: 50
+      }
+      instructions {
+        name: "convert.2.53"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/fully_connected/BiasAdd_grad/BiasAddGrad"
+        }
+        id: 53
+        operand_ids: 52
+      }
+      instructions {
+        name: "constant.2.54"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/fully_connected/BiasAdd_grad/BiasAddGrad"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 54
+      }
+      instructions {
+        name: "reduce.2.55"
+        opcode: "reduce"
+        shape {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/fully_connected/BiasAdd_grad/BiasAddGrad"
+        }
+        dimensions: 0
+        id: 55
+        operand_ids: 53
+        operand_ids: 54
+        called_computation_ids: 1
+      }
+      instructions {
+        name: "convert.2.56"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/fully_connected/BiasAdd_grad/BiasAddGrad"
+        }
+        id: 56
+        operand_ids: 55
+      }
+      instructions {
+        name: "broadcast.2.57"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/fully_connected/biases/ResourceApplyGradientDescent"
+        }
+        id: 57
+        operand_ids: 8
+      }
+      instructions {
+        name: "multiply.2.58"
+        opcode: "multiply"
+        shape {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/fully_connected/biases/ResourceApplyGradientDescent"
+        }
+        id: 58
+        operand_ids: 57
+        operand_ids: 56
+      }
+      instructions {
+        name: "subtract.2.59"
+        opcode: "subtract"
+        shape {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/fully_connected/biases/ResourceApplyGradientDescent"
+        }
+        id: 59
+        operand_ids: 5
+        operand_ids: 58
+      }
+      instructions {
+        name: "transpose.2.60"
+        opcode: "transpose"
+        shape {
+          element_type: F32
+          dimensions: 10
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            minor_to_major: 1
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/gradients/fc/fully_connected/MatMul_grad/MatMul"
+        }
+        dimensions: 1
+        dimensions: 0
+        id: 60
+        operand_ids: 4
+      }
+      instructions {
+        name: "dot.2.61"
+        opcode: "dot"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/gradients/fc/fully_connected/MatMul_grad/MatMul"
+        }
+        dot_dimension_numbers {
+          lhs_contracting_dimensions: 1
+          rhs_contracting_dimensions: 0
+        }
+        id: 61
+        operand_ids: 52
+        operand_ids: 60
+      }
+      instructions {
+        name: "transpose.2.62"
+        opcode: "transpose"
+        shape {
+          element_type: F32
+          dimensions: 256
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            minor_to_major: 1
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/gradients/fc/fully_connected/MatMul_grad/MatMul_1"
+        }
+        dimensions: 1
+        dimensions: 0
+        id: 62
+        operand_ids: 16
+      }
+      instructions {
+        name: "dot.2.63"
+        opcode: "dot"
+        shape {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/gradients/fc/fully_connected/MatMul_grad/MatMul_1"
+        }
+        dot_dimension_numbers {
+          lhs_contracting_dimensions: 1
+          rhs_contracting_dimensions: 0
+        }
+        id: 63
+        operand_ids: 62
+        operand_ids: 52
+      }
+      instructions {
+        name: "broadcast.2.64"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/fully_connected/weights/ResourceApplyGradientDescent"
+        }
+        id: 64
+        operand_ids: 8
+      }
+      instructions {
+        name: "multiply.2.65"
+        opcode: "multiply"
+        shape {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/fully_connected/weights/ResourceApplyGradientDescent"
+        }
+        id: 65
+        operand_ids: 64
+        operand_ids: 63
+      }
+      instructions {
+        name: "subtract.2.66"
+        opcode: "subtract"
+        shape {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/fully_connected/weights/ResourceApplyGradientDescent"
+        }
+        id: 66
+        operand_ids: 4
+        operand_ids: 65
+      }
+      instructions {
+        name: "constant.2.67"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/Relu_grad/ReluGrad"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 67
+      }
+      instructions {
+        name: "broadcast.2.68"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/Relu_grad/ReluGrad"
+        }
+        id: 68
+        operand_ids: 67
+      }
+      instructions {
+        name: "greater-than.2.69"
+        opcode: "greater-than"
+        shape {
+          element_type: PRED
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/Relu_grad/ReluGrad"
+        }
+        id: 69
+        operand_ids: 16
+        operand_ids: 68
+      }
+      instructions {
+        name: "select.2.70"
+        opcode: "select"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ReluGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/Relu_grad/ReluGrad"
+        }
+        id: 70
+        operand_ids: 69
+        operand_ids: 61
+        operand_ids: 68
+      }
+      instructions {
+        name: "convert.2.71"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 64
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/BiasAdd_grad/BiasAddGrad"
+        }
+        id: 71
+        operand_ids: 70
+      }
+      instructions {
+        name: "constant.2.72"
+        opcode: "constant"
+        shape {
+          element_type: F32
+          layout {
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/BiasAdd_grad/BiasAddGrad"
+        }
+        literal {
+          shape {
+            element_type: F32
+            layout {
+              format: DENSE
+            }
+          }
+          f32s: 0
+        }
+        id: 72
+      }
+      instructions {
+        name: "reduce.2.73"
+        opcode: "reduce"
+        shape {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/BiasAdd_grad/BiasAddGrad"
+        }
+        dimensions: 0
+        id: 73
+        operand_ids: 71
+        operand_ids: 72
+        called_computation_ids: 1
+      }
+      instructions {
+        name: "convert.2.74"
+        opcode: "convert"
+        shape {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "BiasAddGrad"
+          op_name: "fc/gradients/fc/hidden/hidden_1/BiasAdd_grad/BiasAddGrad"
+        }
+        id: 74
+        operand_ids: 73
+      }
+      instructions {
+        name: "broadcast.2.75"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/hidden/hidden_1/biases/ResourceApplyGradientDescent"
+        }
+        id: 75
+        operand_ids: 8
+      }
+      instructions {
+        name: "multiply.2.76"
+        opcode: "multiply"
+        shape {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/hidden/hidden_1/biases/ResourceApplyGradientDescent"
+        }
+        id: 76
+        operand_ids: 75
+        operand_ids: 74
+      }
+      instructions {
+        name: "subtract.2.77"
+        opcode: "subtract"
+        shape {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/hidden/hidden_1/biases/ResourceApplyGradientDescent"
+        }
+        id: 77
+        operand_ids: 3
+        operand_ids: 76
+      }
+      instructions {
+        name: "transpose.2.78"
+        opcode: "transpose"
+        shape {
+          element_type: F32
+          dimensions: 784
+          dimensions: 64
+          layout {
+            minor_to_major: 0
+            minor_to_major: 1
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/gradients/fc/hidden/hidden_1/MatMul_grad/MatMul_1"
+        }
+        dimensions: 1
+        dimensions: 0
+        id: 78
+        operand_ids: 6
+      }
+      instructions {
+        name: "dot.2.79"
+        opcode: "dot"
+        shape {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "MatMul"
+          op_name: "fc/gradients/fc/hidden/hidden_1/MatMul_grad/MatMul_1"
+        }
+        dot_dimension_numbers {
+          lhs_contracting_dimensions: 1
+          rhs_contracting_dimensions: 0
+        }
+        id: 79
+        operand_ids: 78
+        operand_ids: 70
+      }
+      instructions {
+        name: "broadcast.2.80"
+        opcode: "broadcast"
+        shape {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/hidden/hidden_1/weights/ResourceApplyGradientDescent"
+        }
+        id: 80
+        operand_ids: 8
+      }
+      instructions {
+        name: "multiply.2.81"
+        opcode: "multiply"
+        shape {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/hidden/hidden_1/weights/ResourceApplyGradientDescent"
+        }
+        id: 81
+        operand_ids: 80
+        operand_ids: 79
+      }
+      instructions {
+        name: "subtract.2.82"
+        opcode: "subtract"
+        shape {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_type: "ResourceApplyGradientDescent"
+          op_name: "fc/final_node/update_fc/hidden/hidden_1/weights/ResourceApplyGradientDescent"
+        }
+        id: 82
+        operand_ids: 2
+        operand_ids: 81
+      }
+      instructions {
+        name: "tuple.2.83"
+        opcode: "tuple"
+        shape {
+          element_type: TUPLE
+          tuple_shapes {
+            element_type: F32
+            dimensions: 784
+            dimensions: 256
+            layout {
+              minor_to_major: 1
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 83
+        operand_ids: 82
+      }
+      instructions {
+        name: "get-tuple-element.2.84"
+        opcode: "get-tuple-element"
+        shape {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 84
+        operand_ids: 83
+      }
+      instructions {
+        name: "tuple.2.85"
+        opcode: "tuple"
+        shape {
+          element_type: TUPLE
+          tuple_shapes {
+            element_type: F32
+            dimensions: 256
+            layout {
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 85
+        operand_ids: 77
+      }
+      instructions {
+        name: "get-tuple-element.2.86"
+        opcode: "get-tuple-element"
+        shape {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 86
+        operand_ids: 85
+      }
+      instructions {
+        name: "tuple.2.87"
+        opcode: "tuple"
+        shape {
+          element_type: TUPLE
+          tuple_shapes {
+            element_type: F32
+            dimensions: 256
+            dimensions: 10
+            layout {
+              minor_to_major: 1
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 87
+        operand_ids: 66
+      }
+      instructions {
+        name: "get-tuple-element.2.88"
+        opcode: "get-tuple-element"
+        shape {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 88
+        operand_ids: 87
+      }
+      instructions {
+        name: "tuple.2.89"
+        opcode: "tuple"
+        shape {
+          element_type: TUPLE
+          tuple_shapes {
+            element_type: F32
+            dimensions: 10
+            layout {
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 89
+        operand_ids: 59
+      }
+      instructions {
+        name: "get-tuple-element.2.90"
+        opcode: "get-tuple-element"
+        shape {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 90
+        operand_ids: 89
+      }
+      instructions {
+        name: "tuple.2.91"
+        opcode: "tuple"
+        shape {
+          element_type: TUPLE
+          tuple_shapes {
+            element_type: F32
+            dimensions: 784
+            dimensions: 256
+            layout {
+              minor_to_major: 1
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          tuple_shapes {
+            element_type: F32
+            dimensions: 256
+            layout {
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          tuple_shapes {
+            element_type: F32
+            dimensions: 256
+            dimensions: 10
+            layout {
+              minor_to_major: 1
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          tuple_shapes {
+            element_type: F32
+            dimensions: 10
+            layout {
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+        }
+        metadata {
+          op_name: "XLA_Retvals"
+        }
+        id: 91
+        operand_ids: 84
+        operand_ids: 86
+        operand_ids: 88
+        operand_ids: 90
+      }
+      program_shape {
+        parameters {
+          element_type: F32
+          dimensions: 64
+          dimensions: 784
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        parameters {
+          element_type: F32
+          dimensions: 64
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        parameters {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        parameters {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        parameters {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        parameters {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        result {
+          element_type: TUPLE
+          tuple_shapes {
+            element_type: F32
+            dimensions: 784
+            dimensions: 256
+            layout {
+              minor_to_major: 1
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          tuple_shapes {
+            element_type: F32
+            dimensions: 256
+            layout {
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          tuple_shapes {
+            element_type: F32
+            dimensions: 256
+            dimensions: 10
+            layout {
+              minor_to_major: 1
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+          tuple_shapes {
+            element_type: F32
+            dimensions: 10
+            layout {
+              minor_to_major: 0
+              format: DENSE
+            }
+          }
+        }
+        parameter_names: "arg0"
+        parameter_names: "arg1"
+        parameter_names: "arg2"
+        parameter_names: "arg3"
+        parameter_names: "arg4"
+        parameter_names: "arg5"
+      }
+      id: 2
+      root_id: 91
+    }
+    program_shape {
+      parameters {
+        element_type: F32
+        dimensions: 64
+        dimensions: 784
+        layout {
+          minor_to_major: 1
+          minor_to_major: 0
+          format: DENSE
+        }
+      }
+      parameters {
+        element_type: F32
+        dimensions: 64
+        dimensions: 10
+        layout {
+          minor_to_major: 1
+          minor_to_major: 0
+          format: DENSE
+        }
+      }
+      parameters {
+        element_type: F32
+        dimensions: 784
+        dimensions: 256
+        layout {
+          minor_to_major: 1
+          minor_to_major: 0
+          format: DENSE
+        }
+      }
+      parameters {
+        element_type: F32
+        dimensions: 256
+        layout {
+          minor_to_major: 0
+          format: DENSE
+        }
+      }
+      parameters {
+        element_type: F32
+        dimensions: 256
+        dimensions: 10
+        layout {
+          minor_to_major: 1
+          minor_to_major: 0
+          format: DENSE
+        }
+      }
+      parameters {
+        element_type: F32
+        dimensions: 10
+        layout {
+          minor_to_major: 0
+          format: DENSE
+        }
+      }
+      result {
+        element_type: TUPLE
+        tuple_shapes {
+          element_type: F32
+          dimensions: 784
+          dimensions: 256
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        tuple_shapes {
+          element_type: F32
+          dimensions: 256
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        tuple_shapes {
+          element_type: F32
+          dimensions: 256
+          dimensions: 10
+          layout {
+            minor_to_major: 1
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+        tuple_shapes {
+          element_type: F32
+          dimensions: 10
+          layout {
+            minor_to_major: 0
+            format: DENSE
+          }
+        }
+      }
+      parameter_names: "arg0"
+      parameter_names: "arg1"
+      parameter_names: "arg2"
+      parameter_names: "arg3"
+      parameter_names: "arg4"
+      parameter_names: "arg5"
+    }
+    id: 2
+    entry_computation_id: 2
+  }
+}
