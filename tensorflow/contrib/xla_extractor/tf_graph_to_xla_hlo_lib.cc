@@ -96,9 +96,10 @@ void tag_parameters(const std::vector<XlaCompiler::Argument>& args,
     int m = comp_i->instructions().size();
     for(int j=0;j<m;j++){
       auto y = comp_i->mutable_instructions(j);
-      ::xla::HloInstructionProto* preq = y;
-      preq->set_name(args[preq->parameter_number()].name);
-      VLOG(1) << i << " " << j <<" " << preq->parameter_number() << " " << preq->name();
+      if (y->opcode() == "parameter") {
+        y->set_name(args[y->parameter_number()].name);
+        VLOG(1) << i << " " << j <<" " << y->parameter_number() << " " << y->name();
+      }
     }
   }
 }
