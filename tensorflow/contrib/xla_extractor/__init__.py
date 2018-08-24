@@ -4,7 +4,7 @@ from __future__ import print_function
 
 # pylint: disable=unused-import,wildcard-import, line-too-long
 from tensorflow.core.framework import graph_pb2
-from tensorflow.compiler.xla.service import session_pb2
+from tensorflow.compiler.xla.service import hlo_pb2
 from tensorflow.python.framework import errors
 from tensorflow.python.pywrap_tensorflow import ExtractXlaWithStringInputs
 from tensorflow.python.util import compat
@@ -25,10 +25,10 @@ def XlaExtract(target_op):
     output_strings = ExtractXlaWithStringInputs(
         graph_def_string, targets_string, status)
 
-  session_module_defs = []
+  hlo_snapshot_defs = []
   for o in output_strings:
-    s = session_pb2.SessionModule()
+    s = hlo_pb2.HloSnapshot()
     s.ParseFromString(o)
-    session_module_defs.append(s)
+    hlo_snapshot_defs.append(s)
 
-  return session_module_defs
+  return hlo_snapshot_defs

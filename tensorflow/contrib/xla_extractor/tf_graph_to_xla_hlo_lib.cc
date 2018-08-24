@@ -7,14 +7,14 @@ namespace tensorflow {
 
 Status xla_extract_via_strings(const string& graph_def_msg,
                                const string& target_node,
-                               std::vector<string>* xla_mod_strings) {
+                               std::vector<string>* hlo_snapshot_strings) {
   tensorflow::GraphDef g;
   g.ParseFromString(graph_def_msg);
 
   string serialized_xla;
-  std::vector<std::unique_ptr<xla::HloSnapshot>> xla_modules;
+  std::vector<std::unique_ptr<xla::HloSnapshot>> hlo_snapshots;
   Status compile_status =
-      FindAndCompileLaunchNodes(g, target_node, &xla_modules);
+      FindAndCompileLaunchNodes(g, target_node, &hlo_snapshots);
 
   if (!compile_status.ok()) {
     LOG(WARNING) << "Compilation to XLA failed: "
@@ -22,14 +22,14 @@ Status xla_extract_via_strings(const string& graph_def_msg,
     return compile_status;
   }
 
-  if (xla_modules.size() == 0) {
+  if (hlo_snapshots.size() == 0) {
     return tensorflow::errors::Internal("Too few xla modules generated");
   }
 
-  xla_mod_strings->resize(xla_modules.size());
+  hlo_snapshot_strings->resize(hlo_snapshots.size());
 
-  for (unsigned int i = 0; i < xla_modules.size(); ++i) {
-    xla_modules[i]->SerializeToString(&(*xla_mod_strings)[i]);
+  for (unsigned int i = 0; i < hlo_snapshots.size(); ++i) {
+    hlo_snapshots[i]->SerializeToString(&(*hlo_snapshot_strings)[i]);
   }
 
   return Status::OK();
@@ -91,10 +91,10 @@ void tag_parameters(const std::vector<XlaCompiler::Argument>& args,
                     xla::HloSnapshot* sm) {
   auto op_list = sm->mutable_hlo()->mutable_hlo_module()->mutable_computations();
   int n=op_list->size();
-  for (int i=0;i<n;i++){
+  for (int i=0; i<n; i++) {
     auto comp_i = sm->mutable_hlo()->mutable_hlo_module()->mutable_computations(i);
     int m = comp_i->instructions().size();
-    for(int j=0;j<m;j++){
+    for(int j=0; j<m; j++) {
       auto y = comp_i->mutable_instructions(j);
       if (y->opcode() == "parameter") {
         y->set_name(args[y->parameter_number()].name);
