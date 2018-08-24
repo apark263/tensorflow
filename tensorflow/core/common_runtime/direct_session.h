@@ -49,6 +49,7 @@ namespace tensorflow {
 
 class CostModel;
 class DebugGateway;
+class XlaExtractor;
 class Device;
 class DirectSessionFactory;
 
@@ -395,6 +396,7 @@ class DirectSession : public Session {
 
   // EXPERIMENTAL: debugger (tfdbg) related
   friend class DebugGateway;
+  friend class XlaExtractor;
 };
 
 }  // end namespace tensorflow

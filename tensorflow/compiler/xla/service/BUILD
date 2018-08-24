@@ -21,6 +21,7 @@ load(
     "tf_proto_library_py",
 )
 
+
 xla_proto_library(
     name = "hlo_proto",
     srcs = ["hlo.proto"],
