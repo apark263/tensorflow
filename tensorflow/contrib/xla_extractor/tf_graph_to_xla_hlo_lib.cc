@@ -88,18 +88,15 @@ bool is_target_node_op(StringPiece node_op) {
 }
 
 void tag_parameters(const std::vector<XlaCompiler::Argument>& args,
-                    xla::HloSnapshot* sm) {
-  auto op_list = sm->mutable_hlo()->mutable_hlo_module()->mutable_computations();
-  int n=op_list->size();
-  for (int i=0; i<n; i++) {
-    auto comp_i = sm->mutable_hlo()->mutable_hlo_module()->mutable_computations(i);
-    int m = comp_i->instructions().size();
-    for(int j=0; j<m; j++) {
-      auto y = comp_i->mutable_instructions(j);
-      if (y->opcode() == "parameter") {
-        y->set_name(args[y->parameter_number()].name);
-        VLOG(1) << i << " " << j <<" " << y->parameter_number() << " " << y->name();
-      }
+                    xla::HloSnapshot* snapshot) {
+  auto hlo_module = snapshot->mutable_hlo()->mutable_hlo_module();
+  auto entry_comp_id = hlo_module->entry_computation_id();
+  xla::HloComputationProto *entry_comp = hlo_module->mutable_computations(entry_comp_id);
+
+  for (auto &hi : *(entry_comp->mutable_instructions())) {
+    if (hi.opcode() == "parameter") {
+      hi.set_name(args[hi.parameter_number()].name);
+      VLOG(1) << hi.parameter_number() << " " << hi.name();
     }
   }
 }
