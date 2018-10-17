@@ -83,7 +83,7 @@ bool is_target_node_op(StringPiece node_op) {
   if (node_op.starts_with("Dummy")) return true;
   if (node_op == "NoOp") return true;
   if (node_op == "ControlTrigger") return true;
-  if (node_op == "Assign") return true;
+  if (node_op.starts_with("Assign")) return true;
   return false;
 }
 
