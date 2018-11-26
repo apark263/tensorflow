@@ -394,7 +394,7 @@ TEST(PartiallyDeclusterPassTest, DontDeclusterXlaDeviceOps) {
   Node* n = FindNodeByName(*graph, "shape");
   ASSERT_NE(n, nullptr);
   n->set_assigned_device_name(
-      "/job:localhost/replica:0/task:0/device:XLA_GPU:0");
+      "/job:localhost/replica:0/task:0/device:XLA_CPU:0");
 
   TF_ASSERT_OK(PartiallyDecluster(&graph));
 

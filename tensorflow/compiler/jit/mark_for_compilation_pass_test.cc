@@ -897,7 +897,7 @@ TEST(XlaCompilationTest, RandomShapeWithFunc) {
 
 TEST(XlaCompilationTest, RandomShapeOnXlaDevice) {
   absl::string_view xla_gpu_device =
-      "/job:worker/replica:0/task:0/device:XLA_GPU:0";
+      "/job:worker/replica:0/task:0/device:XLA_CPU:0";
 
   Scope root = Scope::NewRootScope().ExitOnError();
   Output shape_shape =
@@ -930,7 +930,7 @@ TEST(XlaCompilationTest, RandomShapeOnXlaDevice) {
 
 TEST(XlaCompilationTest, TensorArrayShapeOnXlaDevice) {
   absl::string_view xla_gpu_device =
-      "/job:worker/replica:0/task:0/device:XLA_GPU:0";
+      "/job:worker/replica:0/task:0/device:XLA_CPU:0";
   Scope root = Scope::NewRootScope().ExitOnError();
   ops::TensorArray tensor_array(root.WithOpName("test/tensor_array"), 1,
                                 DT_INT32);

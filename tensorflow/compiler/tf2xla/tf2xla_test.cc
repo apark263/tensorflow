@@ -39,6 +39,29 @@ AttrValue TypeAttrValue(DataType type) {
   return attr_value;
 }
 
+Status LoadTextOrBinaryGraphFile(const string& file_name, GraphDef* graph_def) {
+  string file_data;
+  Status load_file_status =
+      ReadFileToString(Env::Default(), file_name, &file_data);
+  if (!load_file_status.ok()) {
+    errors::AppendToMessage(&load_file_status, " (for file ", file_name, ")");
+    return load_file_status;
+  }
+  // Try to load in binary format first, and then try ascii if that fails.
+  Status load_status = ReadBinaryProto(Env::Default(), file_name, graph_def);
+  if (!load_status.ok()) {
+    if (protobuf::TextFormat::ParseFromString(file_data, graph_def)) {
+      load_status = Status::OK();
+    } else {
+      errors::AppendToMessage(&load_status,
+                              " (both text and binary parsing failed for file ",
+                              file_name, ")");
+    }
+  }
+  return load_status;
+}
+
+
 GraphDef SumGraph() {
   GraphDef graph_def;
   NodeDef* x = graph_def.add_node();
@@ -66,6 +89,14 @@ tf2xla::Config SumConfig() {
   return config;
 }
 
+tf2xla::Config RealConfig() {
+  tf2xla::Config config;
+  //config.add_feed()->mutable_id()->set_node_name("vgg_19/Placeholder");
+  //config.add_feed()->mutable_id()->set_node_name("vgg_19/Placeholder_1");
+  config.add_fetch()->mutable_id()->set_node_name("MatMul");
+  return config;
+}
+
 TEST(ConvertGraphDefToXla, Sum) {
   GraphDef graph_def = SumGraph();
   tf2xla::Config config = SumConfig();
@@ -73,7 +104,7 @@ TEST(ConvertGraphDefToXla, Sum) {
   xla::LocalClient* client = xla::ClientLibrary::LocalClientOrDie();
   xla::XlaComputation computation;
   TF_EXPECT_OK(ConvertGraphDefToXla(graph_def, config, client, &computation));
-
+ 
   // Set up arguments.
   auto x_literal = xla::LiteralUtil::CreateR0<int32>(10);
   auto y_literal = xla::LiteralUtil::CreateR0<int32>(32);
@@ -97,6 +128,22 @@ TEST(ConvertGraphDefToXla, Sum) {
       123); /* invalid output_index */
   EXPECT_TRUE(errors::IsInvalidArgument(
       ConvertGraphDefToXla(graph_def, config, client, &computation)));
+}
+
+TEST(ConvertGraphDefToXla, Real){
+GraphDef graph_def;
+std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/graph.pbtxt";
+Status s = LoadTextOrBinaryGraphFile(in_graph, &graph_def);
+  if (!s.ok()) LOG(FATAL) << "Loading graph failed: " << s.error_message();
+tf2xla::Config config = RealConfig();
+  xla::LocalClient* client = xla::ClientLibrary::LocalClientOrDie();
+  xla::XlaComputation computation;
+  ConvertGraphDefToXla(graph_def, config, client, &computation);
+  auto temp2=computation.proto();
+  std::ostringstream stream;
+  temp2.SerializeToOstream(&stream);
+  string text = stream.str();
+  std::cout<<temp2.DebugString()<<"\n";
 }
 
 }  // namespace

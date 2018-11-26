@@ -55,7 +55,7 @@ static std::unique_ptr<Graph> MakeOuterGraph(
           .Input(u.node()->name(), 0, DT_RESOURCE)
           .Input(v.node()->name(), 0, DT_RESOURCE)
           .Input(w.node()->name(), 0, DT_RESOURCE)
-          .Device("/gpu:0")
+          .Device("/cpu:0")
           .Attr(EncapsulateXlaComputationsPass::kXlaClusterAttr, "launch0")
           .Attr("_variable_start_index", 4)
           .Finalize(&def));
@@ -108,7 +108,7 @@ static std::unique_ptr<Graph> MakeBodyGraph() {
 
   auto add_attrs = [](Node* node) {
     node->AddAttr(EncapsulateXlaComputationsPass::kXlaClusterAttr, "launch0");
-    node->set_requested_device("/gpu:0");
+    node->set_requested_device("/cpu:0");
   };
 
   auto b_identity = ops::Identity(scope.WithOpName("B_identity"), arg1);
@@ -217,7 +217,7 @@ TEST(EncapsulateXlaComputations, Encapsulate) {
 
     auto add_attrs = [](Node* node) {
       node->AddAttr(EncapsulateXlaComputationsPass::kXlaClusterAttr, "launch0");
-      node->set_requested_device("/gpu:0");
+      node->set_requested_device("/cpu:0");
     };
 
     auto b_identity = ops::Identity(scope.WithOpName("B_identity"), b);
@@ -320,7 +320,7 @@ TEST(EncapsulateXlaComputations, BuildXlaLaunchOp) {
   NameAttrList function;
   function.set_name("launch0");
   auto launch = ops::XlaLaunch(
-      scope.WithOpName("launch0").WithDevice("/gpu:0"),
+      scope.WithOpName("launch0").WithDevice("/cpu:0"),
       std::initializer_list<Input>{}, std::initializer_list<Input>{a, b, c, d},
       std::initializer_list<Input>{u, v, w},
       DataTypeVector{DT_FLOAT, DT_INT32, DT_FLOAT, DT_FLOAT}, function);

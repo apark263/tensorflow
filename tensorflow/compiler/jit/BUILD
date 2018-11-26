@@ -499,7 +499,7 @@ tf_cc_test(
         ":compilation_passes",
         ":node_matchers",
         ":xla_cluster_util",
-        ":xla_gpu_device",
+        ":xla_cpu_device",
         "//tensorflow/cc:cc_ops",
         "//tensorflow/cc:cc_ops_internal",
         "//tensorflow/cc:function_ops",
