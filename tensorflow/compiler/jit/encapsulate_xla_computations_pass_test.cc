@@ -30,6 +30,10 @@ limitations under the License.
 #include "tensorflow/core/util/equal_graph_def.h"
 #include "tensorflow/core/util/ptr_util.h"
 
+////////////
+#include "tensorflow/compiler/jit/mark_for_compilation_pass_test_helper.h"
+
+////////////
 namespace tensorflow {
 
 static std::unique_ptr<Graph> MakeOuterGraph(
@@ -345,5 +349,56 @@ TEST(EncapsulateXlaComputations, BuildXlaLaunchOp) {
   graph->ToGraphDef(&actual_def);
   TF_EXPECT_GRAPH_EQ(expected_def, actual_def);
 }
+
+//////////////////////////////////
+Status LoadTextOrBinaryGraphFile(const string& file_name, GraphDef* graph_def) {
+  string file_data;
+  Status load_file_status =
+      ReadFileToString(Env::Default(), file_name, &file_data);
+  if (!load_file_status.ok()) {
+    errors::AppendToMessage(&load_file_status, " (for file ", file_name, ")");
+    return load_file_status;
+  }
+  // Try to load in binary format first, and then try ascii if that fails.
+  Status load_status = ReadBinaryProto(Env::Default(), file_name, graph_def);
+  if (!load_status.ok()) {
+    if (protobuf::TextFormat::ParseFromString(file_data, graph_def)) {
+      load_status = Status::OK();
+    } else {
+      errors::AppendToMessage(&load_status,
+                              " (both text and binary parsing failed for file ",
+                              file_name, ")");
+    }
+  }
+  return load_status;
+}
+
+
+TEST(EncapsulateXlaComputations, funclibdef) {
+GraphDef graph_def;
+std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/graph.pbtxt";
+Status s = LoadTextOrBinaryGraphFile(in_graph, &graph_def);
+
+if (!s.ok()) LOG(FATAL) << "Loading graph failed: " << s.error_message();
+std::cout<<graph_def.DebugString();
+GraphConstructorOptions opts;
+std::unique_ptr<Graph> body_graph(new Graph(OpRegistry::Global())); // how to define correctly
+
+ConvertGraphDefToGraph(opts, graph_def, body_graph.get());
+
+FunctionDefLibrary flib;
+//FunctionLibraryDefinition flib_def((body_graph.get())->op_registry(), flib); same as 2 lines down
+TF_ASSERT_OK(GraphToFunctionDef(*body_graph, "launch0", flib.add_function()));
+
+FunctionLibraryDefinition flib_def(OpRegistry::Global(), flib);
+EncapsulateXlaComputationsPass::Encapsulate(&body_graph, &flib_def);
+TF_ASSERT_OK(EncapsulateXlaComputationsPass::BuildXlaLaunchOps(body_graph.get()));
+//TF_ASSERT_OK(MarkForCompilationPassTestHelper::MarkForCompilation(&body_graph));
+MarkForCompilationPassTestHelper::MarkForCompilation(&body_graph);
+GraphDef final_graph_def;
+body_graph.get()->ToGraphDef(&final_graph_def);
+std::cout<<final_graph_def.DebugString();
+}
+
 
 }  // namespace tensorflow
