@@ -31,7 +31,23 @@ limitations under the License.
 #include "tensorflow/core/util/ptr_util.h"
 
 ////////////
+#include "absl/container/flat_hash_map.h"
+#include "absl/memory/memory.h"
+#include "absl/strings/match.h"
 #include "tensorflow/compiler/jit/mark_for_compilation_pass_test_helper.h"
+#include "tensorflow/core/public/session_options.h"
+#include "tensorflow/compiler/jit/partially_decluster_pass.h"
+#include "tensorflow/compiler/jit/encapsulate_subgraphs_pass.h"
+#include "tensorflow/compiler/jit/build_xla_ops_pass.h"
+
+#include "tensorflow/compiler/jit/kernels/xla_ops.h"
+#include "tensorflow/compiler/jit/legacy_flags/xla_device_flags.h"
+#include "tensorflow/compiler/jit/xla_compile_on_demand_op.h"
+#include "tensorflow/compiler/jit/xla_device.h"
+#include "tensorflow/compiler/jit/xla_device_ops.h"
+#include "tensorflow/compiler/tf2xla/xla_op_registry.h"
+#include "tensorflow/core/common_runtime/device_factory.h"
+#include "tensorflow/core/lib/core/status.h"
 
 ////////////
 namespace tensorflow {
@@ -377,10 +393,13 @@ Status LoadTextOrBinaryGraphFile(const string& file_name, GraphDef* graph_def) {
 TEST(EncapsulateXlaComputations, funclibdef) {
 GraphDef graph_def;
 std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/graph.pbtxt";
+//std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/xla_compile/graph.pbtxt";
 Status s = LoadTextOrBinaryGraphFile(in_graph, &graph_def);
 
 if (!s.ok()) LOG(FATAL) << "Loading graph failed: " << s.error_message();
-std::cout<<graph_def.DebugString();
+
+//std::cout<<"before:\n"<<graph_def.DebugString();
+
 GraphConstructorOptions opts;
 std::unique_ptr<Graph> body_graph(new Graph(OpRegistry::Global())); // how to define correctly
 
@@ -391,12 +410,73 @@ FunctionDefLibrary flib;
 TF_ASSERT_OK(GraphToFunctionDef(*body_graph, "launch0", flib.add_function()));
 
 FunctionLibraryDefinition flib_def(OpRegistry::Global(), flib);
-EncapsulateXlaComputationsPass::Encapsulate(&body_graph, &flib_def);
-TF_ASSERT_OK(EncapsulateXlaComputationsPass::BuildXlaLaunchOps(body_graph.get()));
-TF_ASSERT_OK(MarkForCompilationPassTestHelper::MarkForCompilation(&body_graph));
+
+
+/// fix device for markforcompilation before proceeding
+// add device to configproto session_options
+absl::string_view xla_cpu_device ="/job:worker/replica:0/task:0/device:XLA_CPU:0"; // should match with registration.compilation_device_name
+for (Node* n : body_graph.get()->nodes()) {
+    n->set_assigned_device_name(string(xla_cpu_device));
+  }
+
+
+
+SessionOptions session_options;
+session_options.config.mutable_graph_options()->mutable_optimizer_options()->set_global_jit_level(OptimizerOptions::OFF);//ON_1
+GraphOptimizationPassOptions test_option;
+test_option.graph=&body_graph;
+test_option.flib_def=&flib_def;
+test_option.session_options=&session_options;
+
+XlaOpRegistry::RegisterCompilationKernels();
+legacy_flags::XlaDeviceFlags* flags = legacy_flags::GetXlaDeviceFlags();
+bool compile_on_demand = flags->tf_xla_compile_on_demand;
+
+XlaOpRegistry::DeviceRegistration registration;
+registration.compilation_device_name = DEVICE_XLA_CPU; // also match with device_name in XlaDevice:Create function
+registration.requires_compilation = !compile_on_demand;
+registration.enable_jit_by_default = false;
+registration.compile_resource_ops = true;
+
+std::string name_prefix="";
+std::unique_ptr<XlaDevice> device;
+XlaDevice::Create("Host", registration.compilation_device_name/*DEVICE_XLA_CPU*/, 0
+                                      , DEVICE_CPU_XLA_JIT
+                                      , session_options, name_prefix,
+                                       registration,
+                                       /*transfer_as_literal=*/false,
+                                       /*use_multiple_streams=*/false,
+                                       /*shape_representation_fn=*/{},
+                                       /*padded_shape_fn=*/{}, &device);
+
+
+
+
+EncapsulateXlaComputationsPass pass1;
+TF_ASSERT_OK(pass1.Run(test_option));
+std::cout<<"Main Test: pass1 done\n";
+
+MarkForCompilationPass pass2;
+TF_ASSERT_OK(pass2.Run(test_option));
+std::cout<<"Main Test: pass2 done\n";
+
+PartiallyDeclusterPass pass3;
+TF_ASSERT_OK(pass3.Run(test_option));
+std::cout<<"Main Test: pass3 done\n";
+
+EncapsulateSubgraphsPass pass4;
+TF_ASSERT_OK(pass4.Run(test_option));
+std::cout<<"Main Test: pass4 done\n";
+
+BuildXlaOpsPass pass5;
+TF_ASSERT_OK(pass5.Run(test_option));
+std::cout<<"Main Test: pass5 done\n";
+
+
 GraphDef final_graph_def;
 body_graph.get()->ToGraphDef(&final_graph_def);
-std::cout<<final_graph_def.DebugString();
+
+//std::cout<<"after:\n"<<final_graph_def.DebugString();
 }
 
 
