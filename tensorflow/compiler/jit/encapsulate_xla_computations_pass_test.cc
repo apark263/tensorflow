@@ -31,6 +31,17 @@ limitations under the License.
 #include "tensorflow/core/util/ptr_util.h"
 
 ////////////
+/// optimization
+#include "tensorflow/compiler/jit/xla_fusion_optimizer.h"
+#include "tensorflow/core/grappler/optimizers/meta_optimizer.h"
+#include "tensorflow/core/grappler/grappler_item.h"
+#include "tensorflow/core/grappler/inputs/trivial_test_graph_input_yielder.h"
+#include "tensorflow/core/grappler/optimizers/custom_graph_optimizer.h"
+#include "tensorflow/core/grappler/optimizers/custom_graph_optimizer_registry.h"
+#include "tensorflow/core/grappler/utils.h"
+#include "tensorflow/core/grappler/utils/grappler_test.h"
+///
+
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
@@ -48,6 +59,14 @@ limitations under the License.
 #include "tensorflow/compiler/tf2xla/xla_op_registry.h"
 #include "tensorflow/core/common_runtime/device_factory.h"
 #include "tensorflow/core/lib/core/status.h"
+#include <iostream>
+#include <fstream>
+
+
+
+
+#include "tensorflow/compiler/tf2xla/xla_compiler.h"
+#include "tensorflow/compiler/xla/client/client_library.h"
 
 ////////////
 namespace tensorflow {
@@ -391,40 +410,69 @@ Status LoadTextOrBinaryGraphFile(const string& file_name, GraphDef* graph_def) {
 
 
 TEST(EncapsulateXlaComputations, funclibdef) {
-GraphDef graph_def;
-std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/graph.pbtxt";
+GraphDef input_def;
+//std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/graph.pbtxt";
+std::string in_graph="/home/vishal/learning_rate/out/vgg_19_tf12.pbtxt";
 //std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/xla_compile/graph.pbtxt";
-Status s = LoadTextOrBinaryGraphFile(in_graph, &graph_def);
+Status s = LoadTextOrBinaryGraphFile(in_graph, &input_def);
 
 if (!s.ok()) LOG(FATAL) << "Loading graph failed: " << s.error_message();
 
 //std::cout<<"before:\n"<<graph_def.DebugString();
+std::ofstream myfile;
+  myfile.open ("graph_before_opt_nofetch.pbtxt");
+  myfile << input_def.DebugString();
+  myfile.close();
+
+/* initial optimization*/
+  // Just record properties of optimized Grappler items.
+  RewriterConfig rewriter_config;
+  rewriter_config.set_meta_optimizer_iterations(RewriterConfig::TWO);
+  rewriter_config.set_min_graph_nodes(-1);
+
+ grappler::MetaOptimizer optimizer(nullptr, rewriter_config);
+ //XlaFusionOptimizer optimizer;
+grappler::GrapplerItem item;
+  item.id = "main";
+  item.graph = input_def;
+  //item.save_op = "vgg_19/final_node"; // guessing should be target node
+  //item.save_op = "sparse_softmax_cross_entropy_loss/Mul";
+  GraphDef opt1_graph_def;
+  TF_EXPECT_OK(optimizer.Optimize(nullptr, item, &opt1_graph_def));
 
 GraphConstructorOptions opts;
-std::unique_ptr<Graph> body_graph(new Graph(OpRegistry::Global())); // how to define correctly
+std::unique_ptr<Graph> opt1_graph(new Graph(OpRegistry::Global())); // how to define correctly
 
-ConvertGraphDefToGraph(opts, graph_def, body_graph.get());
+ConvertGraphDefToGraph(opts, opt1_graph_def, opt1_graph.get());
 
-FunctionDefLibrary flib;
-//FunctionLibraryDefinition flib_def((body_graph.get())->op_registry(), flib); same as 2 lines down
-TF_ASSERT_OK(GraphToFunctionDef(*body_graph, "launch0", flib.add_function()));
+/*end*/
 
-FunctionLibraryDefinition flib_def(OpRegistry::Global(), flib);
-
-
-/// fix device for markforcompilation before proceeding
 // add device to configproto session_options
-absl::string_view xla_cpu_device ="/job:worker/replica:0/task:0/device:XLA_CPU:0"; // should match with registration.compilation_device_name
-for (Node* n : body_graph.get()->nodes()) {
+/*DEVICE_CPU_XLA_JIT,DEVICE_XLA_CPU*/
+std::string device_name=DEVICE_XLA_CPU;
+absl::string_view xla_cpu_device ="/job:worker/replica:0/task:0/device:XLA_CPU_JIT:0"; // should match with registration.compilation_device_name
+for (Node* n : opt1_graph.get()->nodes()) {
     n->set_assigned_device_name(string(xla_cpu_device));
   }
 
+/*for (const Edge* e : (opt1_graph.get())->edges()) {
+    if (e->IsControlEdge()) {
+      std::cout<<" me\n";
+    }
+  }*/
+
+
+FunctionDefLibrary flib;
+//FunctionLibraryDefinition flib_def((body_graph.get())->op_registry(), flib); same as 2 lines down
+TF_ASSERT_OK(GraphToFunctionDef(*opt1_graph, "launch0", flib.add_function()));
+
+FunctionLibraryDefinition flib_def(OpRegistry::Global(), flib);
 
 
 SessionOptions session_options;
 session_options.config.mutable_graph_options()->mutable_optimizer_options()->set_global_jit_level(OptimizerOptions::OFF);//ON_1
 GraphOptimizationPassOptions test_option;
-test_option.graph=&body_graph;
+test_option.graph=&opt1_graph;
 test_option.flib_def=&flib_def;
 test_option.session_options=&session_options;
 
@@ -433,14 +481,14 @@ legacy_flags::XlaDeviceFlags* flags = legacy_flags::GetXlaDeviceFlags();
 bool compile_on_demand = flags->tf_xla_compile_on_demand;
 
 XlaOpRegistry::DeviceRegistration registration;
-registration.compilation_device_name = DEVICE_XLA_CPU; // also match with device_name in XlaDevice:Create function
-registration.requires_compilation = !compile_on_demand;
-registration.enable_jit_by_default = false;
+registration.compilation_device_name = device_name;//DEVICE_XLA_CPU; // also match with device_name in XlaDevice:Create function
+registration.requires_compilation = !compile_on_demand; //!
+registration.enable_jit_by_default = false;//false
 registration.compile_resource_ops = true;
 
 std::string name_prefix="";
 std::unique_ptr<XlaDevice> device;
-XlaDevice::Create("Host", registration.compilation_device_name/*DEVICE_XLA_CPU*/, 0
+XlaDevice::Create("Host", device_name/*DEVICE_XLA_CPU*/, 0
                                       , DEVICE_CPU_XLA_JIT
                                       , session_options, name_prefix,
                                        registration,
@@ -472,10 +520,72 @@ BuildXlaOpsPass pass5;
 TF_ASSERT_OK(pass5.Run(test_option));
 std::cout<<"Main Test: pass5 done\n";
 
-
+bool flag_xla_opt=false; //default
 GraphDef final_graph_def;
-body_graph.get()->ToGraphDef(&final_graph_def);
+if(flag_xla_opt==true){
+GraphDef inter_graph_def;
+XlaFusionOptimizer optimizer;
+grappler::GrapplerItem item_inter;
+item_inter.id = "main";
+test_option.graph->get()->ToGraphDef(&inter_graph_def);
+item_inter.graph = inter_graph_def;
+//item.save_op = "vgg_19/final_node"; // guessing should be target node
+//item.save_op = "sparse_softmax_cross_entropy_loss/Mul";
+TF_EXPECT_OK(optimizer.Optimize(nullptr, item_inter, &final_graph_def));
+}
+else{
+test_option.graph->get()->ToGraphDef(&final_graph_def);
+}
 
+
+//std::ofstream myfile;
+  myfile.open ("graph_after_opt_nofetch.pbtxt");
+  myfile << final_graph_def.DebugString();
+  myfile.close();
+
+std::cout<<"apple0\n";
+const std::vector<XlaCompiler::Argument> empty_args;
+  {
+XlaCompiler::CompileOptions Coptions;
+Coptions.is_entry_computation = true;
+Coptions.add_token_input_output = false;
+xla::Client* client_=xla::ClientLibrary::LocalClientOrDie();
+XlaCompiler::Options options;
+
+
+//FunctionDefLibrary flib1;
+//TF_ASSERT_OK(GraphToFunctionDef(*body_graph, "launch0", flib1.add_function()));
+
+//FunctionLibraryDefinition flib_def1(OpRegistry::Global(), flib);
+    options.device_type = DeviceType(DEVICE_CPU_XLA_JIT);//DEVICE_CPU_XLA_JIT
+    options.client = client_;
+    options.flib_def = test_option.flib_def;
+XlaCompiler compiler(options);
+
+std::cout<<"apple1\n";
+XlaCompiler::CompilationResult result;
+std::cout<<"apple2\n";
+std::unique_ptr<Graph> final_graph(new Graph(OpRegistry::Global())); // how to define correctly
+    ConvertGraphDefToGraph(opts, final_graph_def, final_graph.get());
+    
+    compiler.CompileGraph(Coptions, "NoOp", std::move(final_graph),empty_args, &result);
+
+std::cout<<"apple3\n";
+auto temp2=result.computation;
+std::cout<<typeid(temp2.get()).name()<<"mango\n";
+auto temp3=temp2.get();
+std::cout<<"huhndskjnadsk\n";
+auto temp4 = temp3->IsNull();
+//auto temp4=1;
+std::cout<<"huhndskjnadsk1\n";
+if(temp4){
+    std::cout<<"help\n";
+}
+else{
+    std::cout<<"confised\n";
+}
+std::cout<<temp3->proto().DebugString();
+  }
 //std::cout<<"after:\n"<<final_graph_def.DebugString();
 }
 
