@@ -409,22 +409,27 @@ Status LoadTextOrBinaryGraphFile(const string& file_name, GraphDef* graph_def) {
 }
 
 
-TEST(EncapsulateXlaComputations, funclibdef) {
+TEST(EncapsulateXlaComputations, combo_all) {
 GraphDef input_def;
-//std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/graph.pbtxt";
-std::string in_graph="/home/vishal/learning_rate/out/vgg_19_tf12.pbtxt";
-//std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/xla_compile/graph.pbtxt";
+//std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/graph_compile.pbtxt";
+//std::string in_graph="/home/vishal/learning_rate/out/vgg_19_tf12.pbtxt";
+//std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/xla_compile/graph.pbtxt"; // stick with this example
+std::string in_graph="/home/vishal/experiments/xla_tf12_dummy_eg/alex_eg/graph.pbtxt"; //alex example
 Status s = LoadTextOrBinaryGraphFile(in_graph, &input_def);
 
 if (!s.ok()) LOG(FATAL) << "Loading graph failed: " << s.error_message();
 
-//std::cout<<"before:\n"<<graph_def.DebugString();
+//std::cout<<"before:\n"<<input_def.DebugString();
 std::ofstream myfile;
   myfile.open ("graph_before_opt_nofetch.pbtxt");
   myfile << input_def.DebugString();
   myfile.close();
 
-/* initial optimization*/
+// initial optimization
+bool optimize_bool=false;
+GraphDef opt_graph_def;
+if(optimize_bool==true){
+
   // Just record properties of optimized Grappler items.
   RewriterConfig rewriter_config;
   rewriter_config.set_meta_optimizer_iterations(RewriterConfig::TWO);
@@ -437,40 +442,56 @@ grappler::GrapplerItem item;
   item.graph = input_def;
   //item.save_op = "vgg_19/final_node"; // guessing should be target node
   //item.save_op = "sparse_softmax_cross_entropy_loss/Mul";
-  GraphDef opt1_graph_def;
-  TF_EXPECT_OK(optimizer.Optimize(nullptr, item, &opt1_graph_def));
+  TF_EXPECT_OK(optimizer.Optimize(nullptr, item, &opt_graph_def));
+}
+else{
+opt_graph_def=input_def;
+}
+
+
+
+bool flag_xla_opt=false; //default shouldnt find any when set to true
+GraphDef opt1_graph_def;
+if(flag_xla_opt==true){
+XlaFusionOptimizer optimizer;
+grappler::GrapplerItem item_inter;
+item_inter.id = "main";
+item_inter.graph = opt_graph_def;
+//item.save_op = "vgg_19/final_node"; // guessing should be target node
+//item.save_op = "sparse_softmax_cross_entropy_loss/Mul";
+TF_EXPECT_OK(optimizer.Optimize(nullptr, item_inter, &opt1_graph_def));
+}
+else{
+opt1_graph_def=opt_graph_def;
+}
 
 GraphConstructorOptions opts;
 std::unique_ptr<Graph> opt1_graph(new Graph(OpRegistry::Global())); // how to define correctly
 
 ConvertGraphDefToGraph(opts, opt1_graph_def, opt1_graph.get());
-
-/*end*/
+//end
 
 // add device to configproto session_options
 /*DEVICE_CPU_XLA_JIT,DEVICE_XLA_CPU*/
 std::string device_name=DEVICE_XLA_CPU;
-absl::string_view xla_cpu_device ="/job:worker/replica:0/task:0/device:XLA_CPU_JIT:0"; // should match with registration.compilation_device_name
+// "/job:localhost/replica:0/task:0/device:XLA_CPU:0"
+// "/job:worker/replica:0/task:0/device:XLA_CPU_JIT:0"
+absl::string_view xla_cpu_device ="/job:worker/replica:0/task:0/device:XLA_CPU:0"; // should match with registration.compilation_device_name
 for (Node* n : opt1_graph.get()->nodes()) {
     n->set_assigned_device_name(string(xla_cpu_device));
   }
 
-/*for (const Edge* e : (opt1_graph.get())->edges()) {
-    if (e->IsControlEdge()) {
-      std::cout<<" me\n";
-    }
-  }*/
+
 
 
 FunctionDefLibrary flib;
 //FunctionLibraryDefinition flib_def((body_graph.get())->op_registry(), flib); same as 2 lines down
 TF_ASSERT_OK(GraphToFunctionDef(*opt1_graph, "launch0", flib.add_function()));
-
 FunctionLibraryDefinition flib_def(OpRegistry::Global(), flib);
-
+//std::cout<<"flib translation:\n"<<flib.DebugString();
 
 SessionOptions session_options;
-session_options.config.mutable_graph_options()->mutable_optimizer_options()->set_global_jit_level(OptimizerOptions::OFF);//ON_1
+session_options.config.mutable_graph_options()->mutable_optimizer_options()->set_global_jit_level(OptimizerOptions::ON_1);//ON_1
 GraphOptimizationPassOptions test_option;
 test_option.graph=&opt1_graph;
 test_option.flib_def=&flib_def;
@@ -489,7 +510,7 @@ registration.compile_resource_ops = true;
 std::string name_prefix="";
 std::unique_ptr<XlaDevice> device;
 XlaDevice::Create("Host", device_name/*DEVICE_XLA_CPU*/, 0
-                                      , DEVICE_CPU_XLA_JIT
+                                      , device_name/*DEVICE_CPU_XLA_JIT*/
                                       , session_options, name_prefix,
                                        registration,
                                        /*transfer_as_literal=*/false,
@@ -520,9 +541,9 @@ BuildXlaOpsPass pass5;
 TF_ASSERT_OK(pass5.Run(test_option));
 std::cout<<"Main Test: pass5 done\n";
 
-bool flag_xla_opt=false; //default
+bool flag_xla_opt2=false; //default shouldnt find any when set to true
 GraphDef final_graph_def;
-if(flag_xla_opt==true){
+if(flag_xla_opt2==true){
 GraphDef inter_graph_def;
 XlaFusionOptimizer optimizer;
 grappler::GrapplerItem item_inter;
@@ -542,8 +563,10 @@ test_option.graph->get()->ToGraphDef(&final_graph_def);
   myfile.open ("graph_after_opt_nofetch.pbtxt");
   myfile << final_graph_def.DebugString();
   myfile.close();
+//std::cout<<"after:\n"<<final_graph_def.DebugString();
 
 std::cout<<"apple0\n";
+
 const std::vector<XlaCompiler::Argument> empty_args;
   {
 XlaCompiler::CompileOptions Coptions;
@@ -557,7 +580,7 @@ XlaCompiler::Options options;
 //TF_ASSERT_OK(GraphToFunctionDef(*body_graph, "launch0", flib1.add_function()));
 
 //FunctionLibraryDefinition flib_def1(OpRegistry::Global(), flib);
-    options.device_type = DeviceType(DEVICE_CPU_XLA_JIT);//DEVICE_CPU_XLA_JIT
+    options.device_type = DeviceType(device_name);//DEVICE_CPU_XLA_JIT
     options.client = client_;
     options.flib_def = test_option.flib_def;
 XlaCompiler compiler(options);
@@ -577,7 +600,6 @@ auto temp3=temp2.get();
 std::cout<<"huhndskjnadsk\n";
 auto temp4 = temp3->IsNull();
 //auto temp4=1;
-std::cout<<"huhndskjnadsk1\n";
 if(temp4){
     std::cout<<"help\n";
 }
@@ -586,7 +608,7 @@ else{
 }
 std::cout<<temp3->proto().DebugString();
   }
-//std::cout<<"after:\n"<<final_graph_def.DebugString();
+
 }
 
 

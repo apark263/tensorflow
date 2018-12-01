@@ -500,7 +500,7 @@ tf_cc_test(
         ":node_matchers",
         ":xla_cluster_util",
         ":xla_cpu_device",
-         ":xla_cpu_jit",
+        ":xla_cpu_jit",
         "//tensorflow/cc:cc_ops",
         "//tensorflow/cc:cc_ops_internal",
         "//tensorflow/cc:function_ops",
