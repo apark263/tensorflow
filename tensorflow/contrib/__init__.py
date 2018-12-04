@@ -99,6 +99,7 @@ from tensorflow.contrib import timeseries
 from tensorflow.contrib import tpu
 from tensorflow.contrib import training
 from tensorflow.contrib import util
+from tensorflow.contrib import xla_extractor
 from tensorflow.contrib.eager.python import tfe as eager
 from tensorflow.contrib.lite.python import lite
 from tensorflow.contrib.optimizer_v2 import optimizer_v2_symbols as optimizer_v2

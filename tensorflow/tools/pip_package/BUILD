@@ -216,6 +216,7 @@ sh_binary(
             "//tensorflow/contrib/lite/python:interpreter_test_data",
             "//tensorflow/contrib/lite/python:tflite_convert",
             "//tensorflow/contrib/lite/toco/python:toco_from_protos",
+            "//tensorflow/contrib/xla_extractor",
         ],
     }) + if_mkl_ml(["//third_party/mkl:intel_binary_blob"]),
 )
