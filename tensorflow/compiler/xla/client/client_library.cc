@@ -79,11 +79,12 @@ ClientLibrary::~ClientLibrary() = default;
   int replica_count = options.number_of_replicas();
   ClientLibrary& client_library = Singleton();
   tensorflow::mutex_lock lock(client_library.service_mutex_);
-
+  std::cout<<"ClientLibrary::GetOrCreateLocalClient(options)\n";
   if (platform == nullptr) {
+    std::cout<<"ClientLibrary::GetOrCreateLocalClient(options)1\n";
     TF_ASSIGN_OR_RETURN(platform, PlatformUtil::GetDefaultPlatform());
   }
-
+  "ClientLibrary::GetOrCreateLocalClient(options)2\n";
   auto it = client_library.local_instances_.find(platform->id());
   if (it != client_library.local_instances_.end()) {
     return it->second->client.get();
@@ -107,8 +108,11 @@ ClientLibrary::~ClientLibrary() = default;
 }
 
 /* static */ LocalClient* ClientLibrary::LocalClientOrDie() {
+  std::cout<<"ClientLibrary::LocalClientOrDie1\n";
   auto client_status = GetOrCreateLocalClient();
+  std::cout<<"ClientLibrary::LocalClientOrDie2\n";
   TF_CHECK_OK(client_status.status());
+  std::cout<<"ClientLibrary::LocalClientOrDie3\n";
   return client_status.ValueOrDie();
 }
 

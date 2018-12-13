@@ -158,6 +158,7 @@ class MultiPlatformManager {
   // given target.
   static PlatformMap* GetPlatformMap() {
     static PlatformMap* instance = new PlatformMap;
+    //std::cout<<"no of platforms:"<<instance->size()<<"\n";
     return instance;
   }
 

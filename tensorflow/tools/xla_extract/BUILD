@@ -22,6 +22,8 @@ cc_library(
         "//tensorflow/core:core_cpu",
         "//tensorflow/compiler/jit:xla_cpu_device",
 	"//tensorflow/compiler/tf2xla:xla_compiler",
+     "//tensorflow/compiler/xla/client:client_library", # friends only
+        "//tensorflow/compiler/xla/service", # friends only
     ],
 )
 
