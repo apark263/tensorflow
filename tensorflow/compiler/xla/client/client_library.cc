@@ -84,7 +84,7 @@ ClientLibrary::~ClientLibrary() = default;
     std::cout<<"ClientLibrary::GetOrCreateLocalClient(options)1\n";
     TF_ASSIGN_OR_RETURN(platform, PlatformUtil::GetDefaultPlatform());
   }
-  "ClientLibrary::GetOrCreateLocalClient(options)2\n";
+  std::cout<<"ClientLibrary::GetOrCreateLocalClient(options)2\n";
   auto it = client_library.local_instances_.find(platform->id());
   if (it != client_library.local_instances_.end()) {
     return it->second->client.get();
