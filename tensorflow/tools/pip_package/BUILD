@@ -116,6 +116,7 @@ COMMON_PIP_DEPS = [
     "//tensorflow/python:test_ops",
     "//tensorflow/python:while_v2",
     "//tensorflow/tools/dist_test/server:grpc_tensorflow_server",
+    "//tensorflow/tools/xla_extract",
 ]
 
 # On Windows, python binary is a zip file of runfiles tree.
