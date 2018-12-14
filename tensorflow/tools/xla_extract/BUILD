@@ -21,9 +21,12 @@ cc_library(
         "//tensorflow/core:ops",
         "//tensorflow/core:core_cpu",
         "//tensorflow/compiler/jit:xla_cpu_device",
+       # "//tensorflow/compiler/jit:xla_compiler",
 	"//tensorflow/compiler/tf2xla:xla_compiler",
-     "//tensorflow/compiler/xla/client:client_library", # friends only
-        "//tensorflow/compiler/xla/service", # friends only
+     # "//tensorflow/compiler/xla/client:client_library", # friends only
+     #   "//tensorflow/compiler/xla/service", # friends only
+     #   "//tensorflow/compiler/xla/service:cpu_plugin",
+     #   "@local_config_tf//:libtensorflow_framework",
     ],
 )
 
@@ -40,4 +43,5 @@ py_library(
     name = "xla_extract",
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
+    visibility = ["//visibility:public"],
 )

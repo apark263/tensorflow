@@ -1,3 +1,4 @@
+%module tf_graph_to_xla_lib
 %include <std_string.i>
 %include "tensorflow/python/lib/core/strings.i"
 %include "tensorflow/python/platform/base.i"
