@@ -1,10 +1,29 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <iterator>
 #include <string>
-#include <tuple>
 
+#include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/tools/xla_extract/tf_graph_to_xla_lib.h"
+
+namespace tensorflow {
+
+void RealMain(const std::string& in_graph, const std::string& out_graph,
+              const std::string& target_node) {
+  GraphDef gdef;
+  Status s;
+  s = ReadTextProto(Env::Default(), in_graph, &gdef);
+  if (!s.ok()) LOG(FATAL) << "Loading graphdef failed: " << s.error_message();
+
+  auto hmod = ExtractHloFromGraphDef(gdef, target_node);
+
+  s = WriteTextProto(Env::Default(), out_graph, hmod);
+  if (!s.ok()) LOG(FATAL) << "Couldn't write hlo module: " << s.error_message();
+  LOG(INFO) << "ALL DONE";
+}
+
+}
+
+
 int main(int argc, char** argv) {
 
   std::string in_graph = "";

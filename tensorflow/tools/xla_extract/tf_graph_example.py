@@ -6,13 +6,12 @@ for testing xla extraction
 
 import tensorflow as tf
 import logging
-import tensorflow.contrib.layers as tf_layers
 import numpy as np
+from tensorflow.python import keras
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.contrib.compiler.xla import compile
 
-tf.enable_resource_variables()
 
 def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None):
     ''' This function is the input to Estimator constructor.
@@ -23,25 +22,27 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None):
 
     data_format = "channels_first"
 
-    conv1 = tf.layers.conv2d(
-        inputs=features,
+    conv1 = keras.layers.Conv2D(
         filters=4,
         kernel_size=[3, 3],
         padding="same",
         activation=tf.nn.relu,
-        data_format=data_format)
-    pool1 = tf.layers.max_pooling2d(conv1, 2, 2)
-    conv2 = tf.layers.conv2d(
-        inputs=pool1,
+        data_format=data_format)(features)
+    pool1 = keras.layers.MaxPooling2D(
+        pool_size=(2, 2),
+        data_format=data_format)(conv1)
+    conv2 = keras.layers.Conv2D(
         filters=4,
         kernel_size=[3, 3],
         padding="same",
         activation=tf.nn.relu,
-        data_format=data_format)
+        data_format=data_format)(pool1)
 
-    flat = tf.layers.flatten(conv2)
-    logits = tf.layers.dense(
-        flat, units=num_classes, name='final_node', use_bias=False)
+    flat = keras.layers.Flatten(
+        data_format=data_format)(conv2)
+    logits = keras.layers.Dense(
+        units=num_classes,
+        use_bias=False)(flat)
 
     labels = tf.one_hot(labels, depth=num_classes)
     loss = tf.reduce_mean(
@@ -64,42 +65,20 @@ xshape, yshape = [16, 3, 32, 32], [16, 1]
 #y = tf.constant(1, tf.int32, shape=yshape)
 
 # Placeholder input version
-#x = tf.placeholder(tf.float32, shape=xshape)
-#y = tf.placeholder(tf.int32, shape=yshape)
-
-# Dataset input version
-def input_fn():
-    ds = tf.data.Dataset.from_tensor_slices(
-        (np.random.rand(*([1] + xshape[1:])).astype(np.float32),
-         np.random.rand(*([1] + yshape[1:])).astype(np.int32)))
-    ds = ds.repeat(48)
-    ds = ds.shuffle(16)
-    ds = ds.batch(8, drop_remainder=True)
-    return ds
-
-xydataset = input_fn().make_initializable_iterator()
-x, y = xydataset.get_next()
-
+x = tf.placeholder(tf.float32, shape=xshape)
+y = tf.placeholder(tf.int32, shape=yshape)
 
 def generic_compile(model_fn, inputs):
     placeholder_inputs = [
         tf.placeholder(i.dtype, shape=i.shape, name=i.op.name) for i in inputs]
     return compile(model_fn, inputs=placeholder_inputs)
 
+with tf.device("/job:localhost/replica:0/task:0/device:XLA_CPU:0"):
+    (loss,) = generic_compile(model_fn, inputs=[x, y])
 
-def strip_graph(output, inputs):
-    from tensorflow.tools.graph_transforms import TransformGraph
-    transformed_graph_def = TransformGraph(
-        output.graph.as_graph_def(add_shapes=True),
-        inputs=[i.op.name for i in inputs],
-        outputs=[output.op.name],
-        transforms=["strip_unused_nodes"]
-    )
-    return transformed_graph_def
+from tensorflow.tools.xla_extract import XlaExtract
 
-(loss,) = generic_compile(model_fn, inputs=[x, y])
-tf_graph_def = strip_graph(output=loss, inputs=[x, y])
+hlo_mod = XlaExtract(loss)
 
-with open("tf_graph.pbtxt", 'w') as f:
-    f.write(str(tf_graph_def))
-    print("Target node: {}".format(loss.op.name))
+with open("xla_out.pbtxt", 'w') as f:
+    f.write(str(hlo_mod))

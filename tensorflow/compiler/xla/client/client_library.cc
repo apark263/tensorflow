@@ -83,7 +83,7 @@ ClientLibrary::~ClientLibrary() = default;
   if (platform == nullptr) {
     TF_ASSIGN_OR_RETURN(platform, PlatformUtil::GetDefaultPlatform());
   }
-  
+
   auto it = client_library.local_instances_.find(platform->id());
   if (it != client_library.local_instances_.end()) {
     return it->second->client.get();

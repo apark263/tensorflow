@@ -510,9 +510,6 @@ set (pywrap_tensorflow_internal_src
     "${tensorflow_source_dir}/tensorflow/python/util/util.cc"
     "${tensorflow_source_dir}/tensorflow/cc/framework/ops.cc"
     "${tensorflow_source_dir}/tensorflow/cc/framework/scope.cc"
-    ${tensorflow_source_dir}/tensorflow/tools/xla_extract/tf_graph_to_xla_lib.h"
-    ${tensorflow_source_dir}/tensorflow/tools/xla_extract/tf_graph_to_xla_lib.cc"
-    ${tensorflow_source_dir}/tensorflow/tools/xla_extract/tf_graph_to_xla.cc"
     "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.cc"
 )
 
