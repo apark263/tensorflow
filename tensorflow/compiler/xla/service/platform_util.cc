@@ -60,19 +60,11 @@ string CanonicalPlatformName(const string& name) {
 /* static */ StatusOr<std::vector<se::Platform*>>
 PlatformUtil::GetSupportedPlatforms() {
   se::MultiPlatformManager::PlatformMap platform_map;
-  std::cout<<"no of platforms1: "<<platform_map.size()<<"\n";
   se::port::Status platforms_status = se::MultiPlatformManager::WithPlatforms(
       [&platform_map](se::MultiPlatformManager::PlatformMap* map) {
         platform_map = *map;
-        std::cout<<"no of platforms3: "<<platform_map.size()<<"\n";
         return se::port::Status::OK();
       });
-  std::cout<<"no of platforms5: "<<platform_map.size()<<"\n";
-  std::cout<<"stop! whats missing?\n";
-  for(std::pair<std::string, stream_executor::Platform*> element: platform_map){
-    std::string word=element.first;
-    std::cout<<"platform: "<<word<<"\n";
-  }
   if (platform_map.empty()) {
     LOG(WARNING) << "no executor platforms available: platform map is empty";
   }
@@ -115,9 +107,8 @@ PlatformUtil::GetSupportedPlatforms() {
 }
 
 /* static */ StatusOr<se::Platform*> PlatformUtil::GetDefaultPlatform() {
-  std::cout<<"PlatformUtil::GetDefaultPlatform()\n";
   TF_ASSIGN_OR_RETURN(auto platforms, GetSupportedPlatforms());
-  std::cout<<"PlatformUtil::GetDefaultPlatform()1\n";
+
   se::Platform* platform = nullptr;
   if (platforms.empty()) {
     return NotFound("no platforms found");
