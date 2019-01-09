@@ -11,6 +11,12 @@
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/tools/xla_extract/tf_graph_to_xla_lib.h"
 
+#include "tensorflow/compiler/xla/service/hlo_module_config.h"
+#include "tensorflow/compiler/xla/service/hlo_proto_util.h"
+#include "tensorflow/compiler/xla/service/hlo_pass_pipeline.h"
+#include "tensorflow/compiler/xla/service/interpreter/compiler.h"
+#include "tensorflow/compiler/xla/service/layout_assignment.h"
+
 namespace tensorflow {
 
 std::vector<XlaCompiler::Argument> BuildXlaArgsFromClientGraph(
@@ -103,6 +109,31 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
 
     LOG(INFO) << "Done Compiling";
     hmod.CopyFrom(result.computation->proto());
+
+    // hlo optimizations
+
+    // getting hlo_module from proto
+    xla::StatusOr<xla::ProgramShape> program_shape_status = result.computation->GetProgramShape();
+    xla::ProgramShape program_shape = program_shape_status.ValueOrDie();
+    xla::HloModuleConfig module_config = xla::HloModuleConfig(program_shape);
+    
+    xla::StatusOr<std::unique_ptr<xla::HloModule>> hlo_module_status = xla::HloModule::CreateFromProto(hmod, module_config);
+    std::unique_ptr<xla::HloModule> hlo_module = std::move(hlo_module_status.ValueOrDie());
+    std::cout<<hlo_module->name()<<"\n";
+
+    xla::HloPassPipeline pipeline("Interpreter");
+    // adding passes we wish to run
+    pipeline.AddPass<xla::LayoutAssignment>(
+      hlo_module.get()->mutable_entry_computation_layout(),
+      xla::LayoutAssignment::InstructionCanChangeLayout);
+
+    // hlo optimization run
+    s = pipeline.Run(hlo_module.get()).status();
+
+    if (!s.ok()) LOG(FATAL) << "Couldn't RunHloOptimization" << s.error_message();
+
+    LOG(INFO) << "Done HLO Optimization\n";
+    hmod = hlo_module.get()->ToProto();
   }
   if (device_mgr != nullptr) {
     delete(device_mgr);
