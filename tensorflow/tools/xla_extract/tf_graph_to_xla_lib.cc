@@ -15,8 +15,19 @@
 #include "tensorflow/compiler/xla/service/hlo_proto_util.h"
 #include "tensorflow/compiler/xla/service/hlo_pass_pipeline.h"
 #include "tensorflow/compiler/xla/service/interpreter/compiler.h"
-#include "tensorflow/compiler/xla/service/layout_assignment.h"
 
+#include "tensorflow/compiler/xla/service/layout_assignment.h"
+#include "tensorflow/compiler/xla/service/despecializer.h"
+#include "tensorflow/compiler/xla/service/flatten_call_graph.h"
+#include "tensorflow/compiler/xla/service/hlo_constant_folding.h"
+#include "tensorflow/compiler/xla/service/hlo_cse.h"
+#include "tensorflow/compiler/xla/service/hlo_dce.h"
+#include "tensorflow/compiler/xla/service/reshape_mover.h"
+#include "tensorflow/compiler/xla/service/while_loop_simplifier.h"
+#include "tensorflow/compiler/xla/service/hlo_subcomputation_unification.h"
+#include "tensorflow/compiler/xla/service/call_inliner.h"
+#include "tensorflow/compiler/xla/service/algebraic_simplifier.h"
+#include <utility>
 namespace tensorflow {
 
 std::vector<XlaCompiler::Argument> BuildXlaArgsFromClientGraph(
@@ -119,18 +130,39 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
     
     xla::StatusOr<std::unique_ptr<xla::HloModule>> hlo_module_status = xla::HloModule::CreateFromProto(hmod, module_config);
     std::unique_ptr<xla::HloModule> hlo_module = std::move(hlo_module_status.ValueOrDie());
-    std::cout<<hlo_module->name()<<"\n";
+    std::cout<<hlo_module->name()<<"\n"; // can be removed in the future
 
     xla::HloPassPipeline pipeline("Interpreter");
     // adding passes we wish to run
+    pipeline.AddPass<xla::CallInliner>();
+    pipeline.AddPass<xla::HloSubcomputationUnification>();
+    pipeline.AddPass<xla::HloCSE>(false);
+
+    xla::AlgebraicSimplifierOptions options(
+        [](const xla::Shape&, const xla::Shape&) { return false; });
+    options.set_enable_dot_strength_reduction(false);
+    pipeline.AddPass<xla::AlgebraicSimplifier>(options);
+    pipeline.AddPass<xla::WhileLoopSimplifier>();
+    pipeline.AddPass<xla::ReshapeMover>();
+    pipeline.AddPass<xla::HloConstantFolding>();
+    pipeline.AddPass<xla::HloCSE>(true);
     pipeline.AddPass<xla::LayoutAssignment>(
       hlo_module.get()->mutable_entry_computation_layout(),
       xla::LayoutAssignment::InstructionCanChangeLayout);
+    pipeline.AddPass<xla::HloDCE>();
+    pipeline.AddPass<xla::FlattenCallGraph>();
+
+    
+
+    // xla::Despecializer despecial;
+    // s = despecial.Run(hlo_module.get()).status(); // doesnt change output
+
+    // if (!s.ok()) LOG(FATAL) << "Couldn't run Despecializer " << s.error_message();
 
     // hlo optimization run
     s = pipeline.Run(hlo_module.get()).status();
 
-    if (!s.ok()) LOG(FATAL) << "Couldn't RunHloOptimization" << s.error_message();
+    if (!s.ok()) LOG(FATAL) << "Couldn't Run HloOptimization" << s.error_message();
 
     LOG(INFO) << "Done HLO Optimization\n";
     hmod = hlo_module.get()->ToProto();
