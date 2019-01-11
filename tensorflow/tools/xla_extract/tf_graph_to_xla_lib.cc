@@ -130,7 +130,7 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
     
     xla::StatusOr<std::unique_ptr<xla::HloModule>> hlo_module_status = xla::HloModule::CreateFromProto(hmod, module_config);
     std::unique_ptr<xla::HloModule> hlo_module = std::move(hlo_module_status.ValueOrDie());
-    std::cout<<hlo_module->name()<<"\n"; // can be removed in the future
+    std::cout<<hlo_module->name()<<"\n"; // can be removed in the future once build is stable
 
     xla::HloPassPipeline pipeline("Interpreter");
     // adding passes we wish to run
@@ -151,13 +151,6 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
       xla::LayoutAssignment::InstructionCanChangeLayout);
     pipeline.AddPass<xla::HloDCE>();
     pipeline.AddPass<xla::FlattenCallGraph>();
-
-    
-
-    // xla::Despecializer despecial;
-    // s = despecial.Run(hlo_module.get()).status(); // doesnt change output
-
-    // if (!s.ok()) LOG(FATAL) << "Couldn't run Despecializer " << s.error_message();
 
     // hlo optimization run
     s = pipeline.Run(hlo_module.get()).status();
