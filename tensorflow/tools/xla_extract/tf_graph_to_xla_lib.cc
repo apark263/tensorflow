@@ -93,7 +93,12 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
   if (!s.ok()) LOG(FATAL) << "execution state creation failed: " << s.error_message();
   BuildGraphOptions bg_options;
   bg_options.use_function_convention = true;
-  bg_options.callable_options.add_fetch(fetch);
+  std::istringstream fetch_stream(fetch);
+  std::vector<std::string> fetches(std::istream_iterator<std::string>{fetch_stream},
+                                   std::istream_iterator<std::string>());
+  for (std::string fetch0: fetches){
+    bg_options.callable_options.add_fetch(fetch0);
+  }
   std::unique_ptr<ClientGraph> client_graph;
   s = execution_state->BuildGraph(bg_options, &client_graph);
   if (!s.ok()) LOG(FATAL) << "build graph failed " << s.error_message();
