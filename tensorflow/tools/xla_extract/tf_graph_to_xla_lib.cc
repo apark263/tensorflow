@@ -126,6 +126,35 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
     LOG(INFO) << "Done Compiling";
     hmod.CopyFrom(result.computation->proto());
 
+    // name swapping
+    std::size_t entry_ind = 0;
+    bool found = false;
+    for (std::size_t i = 0; i < (std::size_t)hmod.computations_size(); i++) {
+      const xla::HloComputationProto& comp = hmod.computations(i);
+      if (comp.id() == hmod.entry_computation_id()) {
+        entry_ind = i;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw std::runtime_error("Could not find entry computation in HLO module.");
+    }
+
+    xla::HloComputationProto* entry_comp = hmod.mutable_computations(entry_ind);
+
+    for (std::size_t i = 0; i < (std::size_t)entry_comp->instructions_size(); i++) {
+      xla::HloInstructionProto* instr = entry_comp->mutable_instructions(i);
+      if (instr->opcode() != "parameter") {
+        continue;
+      }
+      instr->set_name(xla_args.at(instr->parameter_number()).name);
+
+    }
+   
+   LOG(INFO) << "name swapping done";
+      
     // hlo optimizations
 
     // getting hlo_module from proto
