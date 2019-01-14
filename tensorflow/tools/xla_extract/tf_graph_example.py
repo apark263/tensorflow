@@ -47,7 +47,7 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None):
     labels = tf.one_hot(labels, depth=num_classes)
     loss = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels=labels, logits=logits))
+            labels=labels, logits=logits), name='loss')
 
     learning_rate = 0.1
     train_op = \
@@ -56,7 +56,7 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None):
             loss, global_step=tf.train.get_global_step())
 
     with ops.control_dependencies([train_op]):
-        return array_ops.identity(loss)
+        return array_ops.identity(loss, name=loss.op.name)
 
 xshape, yshape = [16, 3, 32, 32], [16, 1]
 
@@ -73,8 +73,8 @@ def generic_compile(model_fn, inputs):
         tf.placeholder(i.dtype, shape=i.shape, name=i.op.name) for i in inputs]
     return compile(model_fn, inputs=placeholder_inputs)
 
-with tf.device("/job:localhost/replica:0/task:0/device:XLA_CPU:0"):
-    (loss,) = generic_compile(model_fn, inputs=[x, y])
+#with tf.device("/job:localhost/replica:0/task:0/device:XLA_CPU:0"):
+(loss,) = generic_compile(model_fn, inputs=[x, y])
 
 from tensorflow.tools.xla_extract import XlaExtract
 
