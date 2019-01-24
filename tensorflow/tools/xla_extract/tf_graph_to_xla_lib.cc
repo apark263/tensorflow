@@ -106,29 +106,47 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
   auto fdef = client_graph->flib_def->ToProto().function(0);
   auto xla_args = BuildXlaArgsFromClientGraph(client_graph);
 
-  int counter = 1;
-  bool right_order = false;
-  while(!right_order){
-    if(xla_args.at(0).kind==XlaCompiler::Argument::kParameter && xla_args.at(0).resource_kind==0 && xla_args.at(i).initialized==false){
-      right_order = true;
-    }
-    else{
-      s = execution_state->BuildGraph(bg_options, &client_graph);
-      if (!s.ok()) LOG(FATAL) << "build graph failed " << s.error_message();
-      fdef = client_graph->flib_def->ToProto().function(0);
-      xla_args = BuildXlaArgsFromClientGraph(client_graph);
-      counter += 1;
-    }
-    if(counter==20){
-      break;
-    }
-  }
-  std::cout<<"counter: "<<counter<<"\n";
-  // std::cout<<"checking xla_args\n";
-  // for(std::size_t i = 0; i < (std::size_t)xla_args.size(); i++){
-  //     std::cout<<xla_args.at(i).name<<" : "<<xla_args.at(i).kind<<" : "<<xla_args.at(i).resource_kind<<" : "<<xla_args.at(i).initialized<<" : "<<xla_args.at(i).shape<<" : "<<xla_args.at(i).type<<"\n";
+  // rearranging  xla_args to match with graph -> features and labels should be the first nodes
+  // sometimes its not,  but the alternative generated is also always the same one.
+  // If the vector is supposed to be {1,2,3,4,5,6}, it is instead  {4,5,6,1,2,3}
+  // so fixing this below
+  // int counter = 1;
+  // bool right_order = false;
+  // while(!right_order){
+  //   if(xla_args.at(0).kind==XlaCompiler::Argument::kParameter && xla_args.at(0).resource_kind==0 && xla_args.at(0).initialized==false){
+  //     right_order = true;
+  //   }
+  //   else{
+  //     s = execution_state->BuildGraph(bg_options, &client_graph);
+  //     if (!s.ok()) LOG(FATAL) << "build graph failed " << s.error_message();
+  //     fdef = client_graph->flib_def->ToProto().function(0);
+  //     xla_args = BuildXlaArgsFromClientGraph(client_graph);
+  //     counter += 1;
+  //   }
+  //   if(counter==20){
+  //     break;
+  //   }
   // }
+  // std::cout<<"counter: "<<counter<<"\n";
+  if(xla_args.at(0).kind==XlaCompiler::Argument::kParameter && xla_args.at(0).resource_kind==0 && xla_args.at(0).initialized==false){
+  }
+  else{
+    std::cout<<"default fail\n";
+    std::vector<XlaCompiler::Argument> xla_args_temp;
+    int pos = 0;
+    for(std::size_t i = 0; i < (std::size_t)xla_args.size(); i++){
+      if(xla_args.at(i).kind==XlaCompiler::Argument::kParameter && xla_args.at(i).resource_kind==0 && xla_args.at(i).initialized==false){
+        pos =i;
+        break;
+      }
+      xla_args_temp.push_back(std::move(xla_args.at(i)));
+    }
+    std::vector<XlaCompiler::Argument> xla_args_f(xla_args.begin()+pos,xla_args.end());
+    std::move(xla_args_temp.begin(), xla_args_temp.end(), std::back_inserter(xla_args_f));
+    xla_args = xla_args_f;
+  }
 
+ LOG(INFO) << "xla args in correct order\n";
   xla::HloModuleProto hmod;
   {
     DeviceType device_type(DEVICE_CPU_XLA_JIT);
