@@ -105,6 +105,30 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
   if (!s.ok()) LOG(FATAL) << "build graph failed " << s.error_message();
   auto fdef = client_graph->flib_def->ToProto().function(0);
   auto xla_args = BuildXlaArgsFromClientGraph(client_graph);
+
+  int counter = 1;
+  bool right_order = false;
+  while(!right_order){
+    if(xla_args.at(0).kind==XlaCompiler::Argument::kParameter && xla_args.at(0).resource_kind==0 && xla_args.at(i).initialized==false){
+      right_order = true;
+    }
+    else{
+      s = execution_state->BuildGraph(bg_options, &client_graph);
+      if (!s.ok()) LOG(FATAL) << "build graph failed " << s.error_message();
+      fdef = client_graph->flib_def->ToProto().function(0);
+      xla_args = BuildXlaArgsFromClientGraph(client_graph);
+      counter += 1;
+    }
+    if(counter==20){
+      break;
+    }
+  }
+  std::cout<<"counter: "<<counter<<"\n";
+  // std::cout<<"checking xla_args\n";
+  // for(std::size_t i = 0; i < (std::size_t)xla_args.size(); i++){
+  //     std::cout<<xla_args.at(i).name<<" : "<<xla_args.at(i).kind<<" : "<<xla_args.at(i).resource_kind<<" : "<<xla_args.at(i).initialized<<" : "<<xla_args.at(i).shape<<" : "<<xla_args.at(i).type<<"\n";
+  // }
+
   xla::HloModuleProto hmod;
   {
     DeviceType device_type(DEVICE_CPU_XLA_JIT);
@@ -133,7 +157,7 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
     xla::StatusOr<xla::ProgramShape> program_shape_status = result.computation->GetProgramShape();
     xla::ProgramShape program_shape = program_shape_status.ValueOrDie();
     xla::HloModuleConfig module_config = xla::HloModuleConfig(program_shape);
-    
+
     xla::StatusOr<std::unique_ptr<xla::HloModule>> hlo_module_status = xla::HloModule::CreateFromProto(hmod, module_config);
     std::unique_ptr<xla::HloModule> hlo_module = std::move(hlo_module_status.ValueOrDie());
     std::cout<<hlo_module->name()<<"\n"; // can be removed in the future once build is stable
