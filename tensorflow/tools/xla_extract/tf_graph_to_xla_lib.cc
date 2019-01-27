@@ -189,6 +189,7 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
     xla::AlgebraicSimplifierOptions options(
          [](const xla::Shape&, const xla::Shape&) { return false; });
     options.set_enable_dot_strength_reduction(false);
+    options.set_enable_conv_simplification(false);
     pipeline.AddPass<xla::AlgebraicSimplifier>(options);
     pipeline.AddPass<xla::WhileLoopSimplifier>();
     pipeline.AddPass<xla::ReshapeMover>();
