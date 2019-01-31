@@ -52,7 +52,11 @@ std::vector<XlaCompiler::Argument> BuildXlaArgsFromClientGraph(
           arg.shape = shape_value[0];
 	      }
         arg.name = in_def.name();
+
         GetNodeAttr(in_def, "dtype", &(arg.type));
+        if(arg.type==DT_INVALID){
+          arg.type = DT_FLOAT;
+        }
         xla_args.push_back(std::move(arg));
       }
     }
@@ -103,7 +107,22 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
   std::unique_ptr<ClientGraph> client_graph;
   s = execution_state->BuildGraph(bg_options, &client_graph);
   if (!s.ok()) LOG(FATAL) << "build graph failed " << s.error_message();
-  auto fdef = client_graph->flib_def->ToProto().function(0);
+  int n=client_graph->flib_def->ToProto().function_size(); // usually one but for lstm its 6
+  int pos=0;
+  if(n>1){
+    for(int i=0;i<n;i++){
+      auto fdef = client_graph->flib_def->ToProto().function(i);
+      std::string name=fdef.signature().name();
+      if(name.find("cluster_")!=std::string::npos){
+        pos=i;
+      }
+    }
+  }
+  // for(int i=0;i<n;i++){
+  //   auto fdef = client_graph->flib_def->ToProto().function(i);
+  //   std::cout<<fdef.signature().name()<<"\n";
+  // }
+  auto fdef = client_graph->flib_def->ToProto().function(pos);
   auto xla_args = BuildXlaArgsFromClientGraph(client_graph);
 
   // rearranging  xla_args to match with graph -> features and labels should be the first nodes
@@ -162,6 +181,11 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
     XlaCompiler compiler(compile_options);
     XlaCompiler::CompilationResult result;
 
+    //debugging
+    // for(int i=0;i<xla_args.size();i++){
+    //   std::cout<<xla_args.at(i).kind<<" : "<<xla_args.at(i).resource_kind<<" : "<<xla_args.at(i).initialized<<" : "<<xla_args.at(i).shape<<" : "<<xla_args.at(i).name<<" : "<<xla_args.at(i).type<<"\n";
+    // }
+    // end debugging
     s = compiler.CompileFunction(XlaCompiler::CompileOptions(), function,
                                  xla_args, &result);
     if (!s.ok()) LOG(FATAL) << "Couldn't compile to xla: " << s.error_message();
