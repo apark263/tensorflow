@@ -112,37 +112,31 @@ xla::HloModuleProto ExtractHloFromGraphDef(const GraphDef& in_graph,
 
   // Usually there is only one cluster, but for some graphs (e.g. LSTM) there
   // may be more.  Return the *last* cluster whose name starts with "cluster_"
-
   FunctionDefLibrary fdef_lib = client_graph->flib_def->ToProto();
 
   auto fdef_iter = std::find_if(fdef_lib.function().rbegin(), fdef_lib.function().rend(),
 				[] (const FunctionDef& f_) -> bool {
 				  return (f_.signature().name().find("cluster_") == 0);
 				});
-
   const FunctionDef& fdef = *fdef_iter;
 
+  // Need to rearrange these xla_args to match graph.
+  // features and labels should be the first nodes but sometimes aren't
+  // If args are [a, b, c, d, e, ...] and a is the features arg, then leave
+  // as is.  if d is the features arg, then reorder as [d, e, ..., a, b, c]
+  // This corresponds to a rotation with `d` as the axis.
   auto xla_args = BuildXlaArgsFromClientGraph(client_graph);
 
-  // rearranging xla_args to match with graph:
-  // features and labels should be the first nodes and sometimes aren't
-  // but the alternative generated is also always the same one.
-  // If the vector is supposed to be {1,2,3,4,5,6}, it is instead  {4,5,6,1,2,3}
-  // so fixing this below
-  auto isFeature = [](const XlaCompiler::Argument& xarg) -> bool {
-    return (xarg.kind == XlaCompiler::Argument::kParameter &&
-            xarg.resource_kind == 0 && xarg.initialized == false);
-  };
+  // Find the features arg (first parameter tensor)
+  auto features_iter = std::find_if(
+      xla_args.begin(), xla_args.end(),
+      [](const XlaCompiler::Argument& xarg) -> bool {
+        return (xarg.kind == XlaCompiler::Argument::kParameter &&
+                xarg.resource_kind == 0 && xarg.initialized == false);
+      });
 
-  auto features_iter =
-      std::find_if(xla_args.begin(), xla_args.end(), isFeature);
-  int features_pos = features_iter - xla_args.begin();
-
-  decltype(xla_args) xla_args_reordered(xla_args.begin() + features_pos,
-                                        xla_args.end());
-  std::move(xla_args.begin(), xla_args.begin() + features_pos,
-            std::back_inserter(xla_args_reordered));
-  xla_args = xla_args_reordered;
+  // Rotate around it
+  std::rotate(xla_args.begin(), features_iter, xla_args.end());
 
   LOG(INFO) << "xla args in correct order\n";
   xla::HloModuleProto hmod;
