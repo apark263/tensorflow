@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/compiler/aot/compile.h"
 #include "tensorflow/compiler/xla/debug_options_flags.h"
 #include "tensorflow/compiler/xla/service/compiler.h"
+#include "tensorflow/compiler/xla/client/client_library.h"
 #include "tensorflow/compiler/xla/client/xla_computation.h"
 #include "tensorflow/core/framework/function.h"
 #include "tensorflow/core/framework/tensor_shape.h"
