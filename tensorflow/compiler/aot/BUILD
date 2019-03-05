@@ -106,6 +106,31 @@ cc_library(
     ],
 )
 
+tf_cc_binary(
+    name = "tfcompile_xla",
+    visibility = ["//visibility:public"],
+    deps = [":tfcompile_xla_main"],
+)
+
+cc_library(
+    name = "tfcompile_xla_main",
+    srcs = ["tfcompile_xla_main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":tfcompile_lib",
+        "//tensorflow/compiler/xla:debug_options_flags",
+        "//tensorflow/compiler/xla/service:compiler",
+        "//tensorflow/core:core_cpu",
+        "//tensorflow/core:core_cpu_internal",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:framework_internal",
+        "//tensorflow/core:graph",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:protos_all_cc",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 # NOTE: Most end-to-end tests are in the "tests" subdirectory, to ensure that
 # tfcompile.bzl correctly handles usage from outside of the package that it is
 # defined in.
